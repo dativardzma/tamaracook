@@ -1,5 +1,10 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Depends
 from fastapi.middleware.cors import CORSMiddleware
+from sqlalchemy.orm import Session
+from database import Base, engine, get_db
+from models import Product
+
+Base.metadata.create_all(bind=engine)
 
 app = FastAPI()
 
@@ -10,18 +15,10 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-products = [
-    {"id": 1, "name": "Chocolate Cake", "price": 25, "emoji": "🍫"},
-    {"id": 2, "name": "Strawberry Tart", "price": 18, "emoji": "🍓"},
-    {"id": 3, "name": "Vanilla Cupcake", "price": 8, "emoji": "🧁"},
-    {"id": 4, "name": "Macarons (6pcs)", "price": 15, "emoji": "🍬"},
-    {"id": 5, "name": "Honey Baklava", "price": 12, "emoji": "🍯"},
-]
-
 
 @app.get("/api/products")
-def get_products():
-    return products
+def get_products(db: Session = Depends(get_db)):
+    return db.query(Product).filter(Product.available == True).all()
 
 
 @app.get("/api/health")
