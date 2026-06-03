@@ -4,8 +4,7 @@ import { useNavigate } from "react-router-dom";
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "";
 
 export default function Login() {
-  const [tab, setTab] = useState("login");
-  const [form, setForm] = useState({ email: "", password: "", secret: "" });
+  const [form, setForm] = useState({ email: "", password: "" });
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
@@ -15,22 +14,15 @@ export default function Login() {
     setLoading(true);
     setError("");
     try {
-      const url = tab === "login" ? "/api/auth/login" : "/api/auth/signup";
-      const res = await fetch(`${BACKEND_URL}${url}`, {
+      const res = await fetch(`${BACKEND_URL}/api/auth/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(form),
       });
       const data = await res.json();
-      if (!res.ok) { setError(data.detail || "Something went wrong"); setLoading(false); return; }
-      if (tab === "login") {
-        localStorage.setItem("token", data.token);
-        navigate("/admin");
-      } else {
-        setTab("login");
-        setError("");
-        alert("Admin account created! Please log in.");
-      }
+      if (!res.ok) { setError(data.detail || "Invalid email or password"); setLoading(false); return; }
+      localStorage.setItem("token", data.token);
+      navigate("/admin");
     } catch { setError("Could not connect to server."); }
     setLoading(false);
   };
@@ -42,17 +34,17 @@ export default function Login() {
         <h1 style={s.title}>Admin Portal</h1>
         <p style={s.sub}>Sakonditro Shop</p>
 
-        <div style={s.tabs}>
-          <button style={{ ...s.tab, ...(tab === "login" ? s.activeTab : {}) }} onClick={() => setTab("login")}>Sign In</button>
-          <button style={{ ...s.tab, ...(tab === "signup" ? s.activeTab : {}) }} onClick={() => setTab("signup")}>Sign Up</button>
-        </div>
-
         <form onSubmit={handle}>
-          <input style={s.input} type="email" placeholder="Email" value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} required />
-          <input style={s.input} type="password" placeholder="Password" value={form.password} onChange={e => setForm({ ...form, password: e.target.value })} required />
-          {tab === "signup" && <input style={s.input} type="password" placeholder="Admin Secret Code" value={form.secret} onChange={e => setForm({ ...form, secret: e.target.value })} required />}
+          <label style={s.label}>Email</label>
+          <input style={s.input} type="email" placeholder="admin@example.com"
+            value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} required />
+          <label style={s.label}>Password</label>
+          <input style={s.input} type="password" placeholder="••••••••"
+            value={form.password} onChange={e => setForm({ ...form, password: e.target.value })} required />
           {error && <p style={s.error}>{error}</p>}
-          <button style={s.btn} type="submit" disabled={loading}>{loading ? "Please wait..." : tab === "login" ? "Sign In" : "Create Account"}</button>
+          <button style={s.btn} type="submit" disabled={loading}>
+            {loading ? "Signing in..." : "Sign In"}
+          </button>
         </form>
 
         <button style={s.back} onClick={() => navigate("/")}>← Back to Shop</button>
@@ -67,11 +59,9 @@ const s = {
   logo: { fontSize: "4rem", marginBottom: "1rem" },
   title: { fontSize: "1.8rem", fontWeight: "700", color: "#2d2d2d" },
   sub: { color: "#e91e8c", fontWeight: "500", marginBottom: "2rem" },
-  tabs: { display: "flex", background: "#f5f5f5", borderRadius: "12px", padding: "4px", marginBottom: "1.5rem" },
-  tab: { flex: 1, padding: "0.6rem", border: "none", background: "transparent", cursor: "pointer", borderRadius: "10px", fontWeight: "500", color: "#888", fontSize: "0.95rem" },
-  activeTab: { background: "white", color: "#e91e8c", boxShadow: "0 2px 8px rgba(0,0,0,0.1)" },
-  input: { width: "100%", padding: "0.9rem 1.2rem", borderRadius: "12px", border: "1.5px solid #eee", marginBottom: "1rem", fontSize: "0.95rem", outline: "none", display: "block" },
-  error: { color: "#e91e8c", fontSize: "0.85rem", marginBottom: "1rem" },
+  label: { display: "block", textAlign: "left", fontSize: "0.85rem", color: "#666", marginBottom: "0.4rem", fontWeight: "500" },
+  input: { width: "100%", padding: "0.9rem 1.2rem", borderRadius: "12px", border: "1.5px solid #eee", marginBottom: "1.2rem", fontSize: "0.95rem", outline: "none", display: "block" },
+  error: { color: "#e91e8c", fontSize: "0.85rem", marginBottom: "1rem", textAlign: "left" },
   btn: { width: "100%", background: "linear-gradient(135deg, #e91e8c, #c2185b)", color: "white", border: "none", padding: "1rem", borderRadius: "12px", fontSize: "1rem", fontWeight: "600", cursor: "pointer", marginBottom: "1rem" },
   back: { background: "none", border: "none", color: "#aaa", cursor: "pointer", fontSize: "0.9rem" },
 };

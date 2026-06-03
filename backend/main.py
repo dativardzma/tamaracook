@@ -27,6 +27,10 @@ class AdminSignup(BaseModel):
     password: str
     secret: str
 
+class UserRegister(BaseModel):
+    email: str
+    password: str
+
 class Login(BaseModel):
     email: str
     password: str
@@ -51,7 +55,17 @@ class ProductUpdate(BaseModel):
 
 
 # Auth
-@app.post("/api/auth/signup")
+@app.post("/api/auth/register")
+def register(data: UserRegister, db: Session = Depends(get_db)):
+    if db.query(User).filter(User.email == data.email).first():
+        raise HTTPException(status_code=400, detail="Email already registered")
+    user = User(email=data.email, password=hash_password(data.password), is_admin=False)
+    db.add(user)
+    db.commit()
+    db.refresh(user)
+    return {"token": create_token(user.id), "is_admin": user.is_admin, "email": user.email}
+
+@app.post("/api/auth/admin/signup")
 def admin_signup(data: AdminSignup, db: Session = Depends(get_db)):
     if data.secret != ADMIN_SECRET:
         raise HTTPException(status_code=403, detail="Invalid admin secret")
@@ -67,7 +81,7 @@ def login(data: Login, db: Session = Depends(get_db)):
     user = db.query(User).filter(User.email == data.email).first()
     if not user or not verify_password(data.password, user.password):
         raise HTTPException(status_code=401, detail="Invalid email or password")
-    return {"token": create_token(user.id), "is_admin": user.is_admin}
+    return {"token": create_token(user.id), "is_admin": user.is_admin, "email": user.email}
 
 
 # Public
