@@ -135,7 +135,7 @@ export default function Admin() {
                       <span style={s.productEmoji}>{p.emoji}</span>
                       <p style={s.productName}>{p.name}</p>
                       <p style={s.productPrice}>₾{Number(p.price).toFixed(2)}</p>
-                      <span style={{ ...s.statusBadge, background: p.available ? "#e8f5e9", color: p.available ? "#2e7d32" : "#c62828", background: p.available ? "#e8f5e9" : "#fce4ec" }}>
+                      <span style={{ ...s.statusBadge, background: p.available ? "#e8f5e9" : "#fce4ec", color: p.available ? "#2e7d32" : "#c62828" }}>
                         {p.available ? "Available" : "Hidden"}
                       </span>
                       <div style={s.productActions}>
