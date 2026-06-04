@@ -166,6 +166,7 @@ export default function Delivery() {
                       <div style={s.cardTopLeft}>
                         <span style={{ ...s.statusDot, background: st.dot }} />
                         <span style={s.orderId}>Order #{o.id}</span>
+                        {o.order_code && <span style={s.orderCodeBadge}>{o.order_code}</span>}
                       </div>
                       <div style={s.cardTopRight}>
                         <span style={{ ...s.badge, background: st.bg, color: st.color }}>{st.label}</span>
@@ -297,6 +298,7 @@ const s = {
   cardTopRight: { display: "flex", alignItems: "center", gap: "0.6rem" },
   badge: { padding: "0.22rem 0.75rem", borderRadius: "50px", fontSize: "0.72rem", fontWeight: "600" },
   timeAgo: { color: "#94a3b8", fontSize: "0.72rem" },
+  orderCodeBadge: { background: "#f0f4f8", color: "#475569", fontFamily: "monospace", fontSize: "0.72rem", fontWeight: "700", padding: "0.18rem 0.65rem", borderRadius: "6px", letterSpacing: "0.08em" },
 
   typeBadge: { display: "inline-flex", background: "#f0f4f8", color: "#475569", fontSize: "0.72rem", fontWeight: "600", padding: "0.2rem 0.7rem", borderRadius: "50px", marginBottom: "1rem" },
 

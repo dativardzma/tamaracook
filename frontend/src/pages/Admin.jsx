@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "";
@@ -14,12 +14,40 @@ const STATUS_COLORS = {
 
 const EMOJIS = ["🍰", "🎂", "🥐", "🍫", "🍩", "🧁", "🥧", "🍮", "🍪", "🥮", "🍭", "🧇"];
 
+// Compress image to max 900px wide, 0.82 quality JPEG via Canvas API
+async function compressImage(file) {
+  return new Promise((resolve) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        const MAX = 900;
+        let { width, height } = img;
+        if (width > MAX || height > MAX) {
+          const r = Math.min(MAX / width, MAX / height);
+          width = Math.round(width * r);
+          height = Math.round(height * r);
+        }
+        const canvas = document.createElement("canvas");
+        canvas.width = width;
+        canvas.height = height;
+        canvas.getContext("2d").drawImage(img, 0, 0, width, height);
+        canvas.toBlob(resolve, "image/jpeg", 0.82);
+      };
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
 export default function Admin() {
   const [products, setProducts] = useState([]);
   const [orders, setOrders] = useState([]);
   const [team, setTeam] = useState([]);
   const [page, setPage] = useState("dashboard");
   const [productForm, setProductForm] = useState({ name: "", price: "", emoji: "🍰", description: "" });
+  const [imageFile, setImageFile] = useState(null);
+  const [imagePreview, setImagePreview] = useState(null);
   const [teamForm, setTeamForm] = useState({ email: "", password: "" });
   const [orderFilter, setOrderFilter] = useState("all");
   const [orderSearch, setOrderSearch] = useState("");
@@ -28,10 +56,12 @@ export default function Admin() {
   });
   const [loading, setLoading] = useState(false);
   const [msg, setMsg] = useState({ text: "", type: "success" });
+  const uploadInputRefs = useRef({});
   const navigate = useNavigate();
   const token = localStorage.getItem("token");
   const adminEmail = localStorage.getItem("email");
   const headers = { "Content-Type": "application/json", Authorization: `Bearer ${token}` };
+  const authHeader = { Authorization: `Bearer ${token}` };
 
   const flash = (text, type = "success") => {
     setMsg({ text, type });
@@ -59,17 +89,63 @@ export default function Admin() {
     navigate("/login");
   };
 
+  const handleImageSelect = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    setImageFile(file);
+    const reader = new FileReader();
+    reader.onload = (ev) => setImagePreview(ev.target.result);
+    reader.readAsDataURL(file);
+  };
+
   const addProduct = async (e) => {
     e.preventDefault();
     setLoading(true);
-    await fetch(`${BACKEND_URL}/api/admin/products`, {
+    const res = await fetch(`${BACKEND_URL}/api/admin/products`, {
       method: "POST", headers,
       body: JSON.stringify({ ...productForm, price: parseFloat(productForm.price), available: true }),
     });
+    const data = await res.json();
+
+    if (imageFile && data.id) {
+      const compressed = await compressImage(imageFile);
+      const fd = new FormData();
+      fd.append("file", compressed, "photo.jpg");
+      await fetch(`${BACKEND_URL}/api/admin/products/${data.id}/image`, {
+        method: "POST",
+        headers: authHeader,
+        body: fd,
+      });
+    }
+
     setProductForm({ name: "", price: "", emoji: "🍰", description: "" });
+    setImageFile(null);
+    setImagePreview(null);
     flash("Product added successfully!");
     loadProducts();
     setLoading(false);
+  };
+
+  const uploadProductImage = async (productId, file) => {
+    if (!file) return;
+    const compressed = await compressImage(file);
+    const fd = new FormData();
+    fd.append("file", compressed, "photo.jpg");
+    await fetch(`${BACKEND_URL}/api/admin/products/${productId}/image`, {
+      method: "POST",
+      headers: authHeader,
+      body: fd,
+    });
+    flash("Photo uploaded!");
+    loadProducts();
+  };
+
+  const removeProductImage = async (productId) => {
+    await fetch(`${BACKEND_URL}/api/admin/products/${productId}/image`, {
+      method: "DELETE", headers,
+    });
+    flash("Photo removed.");
+    loadProducts();
   };
 
   const toggleAvailable = async (product) => {
@@ -83,7 +159,7 @@ export default function Admin() {
   const deleteProduct = async (id) => {
     if (!confirm("Delete this product? This cannot be undone.")) return;
     await fetch(`${BACKEND_URL}/api/admin/products/${id}`, { method: "DELETE", headers });
-    flash("Product removed.", "success");
+    flash("Product removed.");
     loadProducts();
   };
 
@@ -131,7 +207,10 @@ export default function Admin() {
 
   const filteredOrders = orders.filter((o) => {
     const matchStatus = orderFilter === "all" || o.status === orderFilter;
-    const matchSearch = !orderSearch || o.customer_name?.toLowerCase().includes(orderSearch.toLowerCase()) || o.phone?.includes(orderSearch);
+    const matchSearch = !orderSearch ||
+      o.customer_name?.toLowerCase().includes(orderSearch.toLowerCase()) ||
+      o.phone?.includes(orderSearch) ||
+      o.order_code?.toLowerCase().includes(orderSearch.toLowerCase());
     return matchStatus && matchSearch;
   });
 
@@ -218,7 +297,7 @@ export default function Admin() {
                     <div style={{ ...s.statIconWrap, background: stat.color }}>
                       <span style={s.statIcon}>{stat.icon}</span>
                     </div>
-                    <div style={s.statRight}>
+                    <div>
                       <div style={{ ...s.statValue, color: stat.accent }}>{stat.value}</div>
                       <div style={s.statLabel}>{stat.label}</div>
                       <div style={s.statSub}>{stat.sub}</div>
@@ -246,6 +325,7 @@ export default function Admin() {
                             <p style={s.dashItems}>{o.items}</p>
                           </div>
                           <div style={s.dashRight}>
+                            {o.order_code && <span style={s.orderCodeTag}>{o.order_code}</span>}
                             <span style={{ ...s.badge, background: sc.bg, color: sc.color }}>{sc.label}</span>
                             <span style={s.dashTotal}>₾{Number(o.total).toFixed(2)}</span>
                           </div>
@@ -257,7 +337,7 @@ export default function Admin() {
 
                 <div style={{ ...s.card, flex: 1 }}>
                   <div style={s.cardHeader}>
-                    <h3 style={s.cardTitle}>Top Products</h3>
+                    <h3 style={s.cardTitle}>Menu Items</h3>
                     <button style={s.cardAction} onClick={() => setPage("products")}>Manage →</button>
                   </div>
                   {products.length === 0 ? (
@@ -265,7 +345,10 @@ export default function Admin() {
                   ) : (
                     products.slice(0, 5).map((p) => (
                       <div key={p.id} style={s.dashProductRow}>
-                        <span style={s.dashProductEmoji}>{p.emoji}</span>
+                        {p.image_data
+                          ? <img src={p.image_data} style={s.dashProductImg} alt={p.name} />
+                          : <span style={s.dashProductEmoji}>{p.emoji}</span>
+                        }
                         <div style={{ flex: 1 }}>
                           <p style={s.dashName}>{p.name}</p>
                           <p style={s.dashItems}>₾{Number(p.price).toFixed(2)}</p>
@@ -287,11 +370,7 @@ export default function Admin() {
               <div style={s.orderToolbar}>
                 <div style={s.filterTabs}>
                   {[["all", "All"], ["pending", "⏳ Pending"], ["confirmed", "✅ Confirmed"], ["out_for_delivery", "🚚 In Transit"], ["delivered", "📦 Delivered"]].map(([k, l]) => (
-                    <button
-                      key={k}
-                      style={{ ...s.filterTab, ...(orderFilter === k ? s.filterTabActive : {}) }}
-                      onClick={() => setOrderFilter(k)}
-                    >
+                    <button key={k} style={{ ...s.filterTab, ...(orderFilter === k ? s.filterTabActive : {}) }} onClick={() => setOrderFilter(k)}>
                       {l}
                       {k !== "all" && (
                         <span style={{ ...s.filterCount, ...(orderFilter === k ? s.filterCountActive : {}) }}>
@@ -303,7 +382,7 @@ export default function Admin() {
                 </div>
                 <input
                   style={s.searchInput}
-                  placeholder="🔍 Search by name or phone..."
+                  placeholder="🔍 Search by name, phone or order code..."
                   value={orderSearch}
                   onChange={e => setOrderSearch(e.target.value)}
                 />
@@ -321,6 +400,7 @@ export default function Admin() {
                           <div style={s.orderCardTop}>
                             <div style={s.orderCardLeft}>
                               <span style={s.orderId}>Order #{o.id}</span>
+                              {o.order_code && <span style={s.orderCodeBadge}>{o.order_code}</span>}
                               <span style={{ ...s.badge, background: sc.bg, color: sc.color }}>{sc.label}</span>
                               <span style={s.orderTypeBadge}>{o.order_type === "pickup" ? "🏠 Pickup" : "🚚 Delivery"}</span>
                             </div>
@@ -332,17 +412,13 @@ export default function Admin() {
                           </div>
                           <div style={s.orderDetails}>
                             <span style={s.orderDetail}>👤 {o.customer_name}</span>
-                            <span style={s.orderDetail}>📞 {o.phone}</span>
+                            <a href={`tel:${o.phone}`} style={s.orderPhone}>📞 {o.phone}</a>
                             {o.address && <span style={s.orderDetail}>📍 {o.address}</span>}
                           </div>
                           <p style={s.orderItems}>{o.items}</p>
                           <div style={s.orderCardBottom}>
                             <span style={s.orderTotal}>₾{Number(o.total).toFixed(2)}</span>
-                            <select
-                              value={o.status || "pending"}
-                              style={s.statusSelect}
-                              onChange={(e) => updateOrderStatus(o.id, e.target.value)}
-                            >
+                            <select value={o.status || "pending"} style={s.statusSelect} onChange={(e) => updateOrderStatus(o.id, e.target.value)}>
                               {Object.entries(STATUS_COLORS).map(([k, v]) => (
                                 <option key={k} value={k}>{v.label}</option>
                               ))}
@@ -364,27 +440,48 @@ export default function Admin() {
                 <div style={s.emptyState}>
                   <span style={s.emptyIcon}>🍽️</span>
                   <p style={s.emptyTitle}>No products yet</p>
-                  <p style={s.empty}>Add your first product using the "Add Product" section</p>
                   <button style={s.emptyBtn} onClick={() => setPage("add")}>+ Add First Product</button>
                 </div>
               ) : (
                 <div style={s.productGrid}>
                   {products.map((p) => (
-                    <div key={p.id} style={{ ...s.productCard, opacity: p.available ? 1 : 0.55 }}>
-                      <div style={s.productEmojiWrap}>{p.emoji}</div>
-                      <p style={s.productName}>{p.name}</p>
-                      {p.description && <p style={s.productDesc}>{p.description}</p>}
-                      <p style={s.productPrice}>₾{Number(p.price).toFixed(2)}</p>
-                      <div style={s.productStatusRow}>
-                        <span style={{ ...s.badge, background: p.available ? "#e8f5e9" : "#fce4ec", color: p.available ? "#2e7d32" : "#c62828" }}>
-                          {p.available ? "✓ Active" : "Hidden"}
-                        </span>
+                    <div key={p.id} style={{ ...s.productCard, opacity: p.available ? 1 : 0.6 }}
+                      onMouseEnter={e => { const ov = e.currentTarget.querySelector("[data-overlay]"); if (ov) ov.style.opacity = "1"; ov.style.background = "rgba(0,0,0,0.35)"; }}
+                      onMouseLeave={e => { const ov = e.currentTarget.querySelector("[data-overlay]"); if (ov) ov.style.opacity = "0"; ov.style.background = "rgba(0,0,0,0)"; }}
+                    >
+                      <div style={s.productImgWrap}>
+                        {p.image_data
+                          ? <img src={p.image_data} style={s.productImg} alt={p.name} />
+                          : <span style={s.productEmoji}>{p.emoji}</span>
+                        }
+                        <div data-overlay="" style={s.photoOverlay}>
+                          <label style={s.photoOverlayBtn}>
+                            📷
+                            <input
+                              type="file"
+                              accept="image/*"
+                              style={{ display: "none" }}
+                              onChange={e => uploadProductImage(p.id, e.target.files[0])}
+                            />
+                          </label>
+                          {p.image_data && (
+                            <button style={s.photoRemoveBtn} onClick={() => removeProductImage(p.id)}>✕</button>
+                          )}
+                        </div>
                       </div>
-                      <div style={s.productActions}>
-                        <button style={s.toggleBtn} onClick={() => toggleAvailable(p)}>
-                          {p.available ? "Hide" : "Show"}
-                        </button>
-                        <button style={s.deleteBtn} onClick={() => deleteProduct(p.id)}>🗑️</button>
+                      <div style={s.productInfo}>
+                        <p style={s.productName}>{p.name}</p>
+                        {p.description && <p style={s.productDesc}>{p.description}</p>}
+                        <p style={s.productPrice}>₾{Number(p.price).toFixed(2)}</p>
+                        <div style={s.productStatusRow}>
+                          <span style={{ ...s.badge, background: p.available ? "#e8f5e9" : "#fce4ec", color: p.available ? "#2e7d32" : "#c62828" }}>
+                            {p.available ? "✓ Active" : "Hidden"}
+                          </span>
+                        </div>
+                        <div style={s.productActions}>
+                          <button style={s.toggleBtn} onClick={() => toggleAvailable(p)}>{p.available ? "Hide" : "Show"}</button>
+                          <button style={s.deleteBtn} onClick={() => deleteProduct(p.id)}>🗑️</button>
+                        </div>
                       </div>
                     </div>
                   ))}
@@ -399,14 +496,32 @@ export default function Admin() {
               <div style={s.addFormInner}>
                 <div style={s.addFormLeft}>
                   <h3 style={s.cardTitle}>Product Details</h3>
-                  <p style={s.cardSub}>Fill in all the fields below to list a new item</p>
+                  <p style={s.cardSub}>Fill in all the fields below to list a new item on your menu</p>
                   <form onSubmit={addProduct}>
-                    <label style={s.label}>Emoji Icon</label>
+
+                    {/* Photo Upload */}
+                    <label style={s.label}>Product Photo</label>
+                    <div style={s.photoUploadArea}>
+                      {imagePreview ? (
+                        <div style={s.photoPreviewWrap}>
+                          <img src={imagePreview} style={s.photoPreviewImg} alt="preview" />
+                          <button type="button" style={s.photoRemoveBtn2} onClick={() => { setImageFile(null); setImagePreview(null); }}>✕ Remove</button>
+                        </div>
+                      ) : (
+                        <label style={s.photoUploadLabel}>
+                          <span style={s.photoUploadIcon}>📷</span>
+                          <span style={s.photoUploadText}>Click to upload a photo</span>
+                          <span style={s.photoUploadSub}>JPG, PNG, WebP — max 8MB (auto-compressed)</span>
+                          <input type="file" accept="image/*" style={{ display: "none" }} onChange={handleImageSelect} />
+                        </label>
+                      )}
+                    </div>
+
+                    {/* Emoji fallback */}
+                    <label style={s.label}>Emoji (shown if no photo)</label>
                     <div style={s.emojiPicker}>
                       {EMOJIS.map(em => (
-                        <button
-                          key={em}
-                          type="button"
+                        <button key={em} type="button"
                           style={{ ...s.emojiOpt, ...(productForm.emoji === em ? s.emojiOptActive : {}) }}
                           onClick={() => setProductForm({ ...productForm, emoji: em })}
                         >
@@ -416,46 +531,37 @@ export default function Admin() {
                     </div>
 
                     <label style={s.label}>Product Name *</label>
-                    <input
-                      style={s.input}
-                      value={productForm.name}
+                    <input style={s.input} value={productForm.name}
                       onChange={(e) => setProductForm({ ...productForm, name: e.target.value })}
-                      placeholder="e.g. Chocolate Mousse Cake"
-                      required
-                    />
+                      placeholder="e.g. Chocolate Mousse Cake" required />
 
                     <label style={s.label}>Description</label>
-                    <textarea
-                      style={{ ...s.input, height: "80px", resize: "vertical" }}
+                    <textarea style={{ ...s.input, height: "80px", resize: "vertical" }}
                       value={productForm.description}
                       onChange={(e) => setProductForm({ ...productForm, description: e.target.value })}
-                      placeholder="Short description shown to customers..."
-                    />
+                      placeholder="Short description shown on the menu..." />
 
                     <label style={s.label}>Price (₾) *</label>
-                    <input
-                      style={s.input}
-                      type="number"
-                      step="0.01"
-                      min="0"
+                    <input style={s.input} type="number" step="0.01" min="0"
                       value={productForm.price}
                       onChange={(e) => setProductForm({ ...productForm, price: e.target.value })}
-                      placeholder="25.00"
-                      required
-                    />
+                      placeholder="25.00" required />
 
                     <button style={s.addBtn} type="submit" disabled={loading}>
-                      {loading ? "Adding..." : "➕ Add Product"}
+                      {loading ? "Adding..." : "➕ Add to Menu"}
                     </button>
                   </form>
                 </div>
 
                 <div style={s.addFormRight}>
-                  <h3 style={s.cardTitle}>Preview</h3>
-                  <p style={s.cardSub}>How it will appear to customers</p>
+                  <h3 style={s.cardTitle}>Live Preview</h3>
+                  <p style={s.cardSub}>How it appears to customers</p>
                   <div style={s.productPreview}>
                     <div style={s.previewImgWrap}>
-                      <span style={s.previewEmoji}>{productForm.emoji || "🍰"}</span>
+                      {imagePreview
+                        ? <img src={imagePreview} style={s.previewRealImg} alt="preview" />
+                        : <span style={s.previewEmoji}>{productForm.emoji || "🍰"}</span>
+                      }
                       <div style={s.previewFreshBadge}>✓ Fresh Today</div>
                     </div>
                     <div style={s.previewBody}>
@@ -477,36 +583,20 @@ export default function Admin() {
             <div style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
               <div style={s.card}>
                 <h3 style={s.cardTitle}>Add Delivery Staff</h3>
-                <p style={s.cardSub}>
-                  They'll log in via the Staff Portal at <strong>/login</strong> and be redirected to the delivery panel.
-                </p>
+                <p style={s.cardSub}>They'll log in via the Staff Portal at <strong>/login</strong> and be redirected to the delivery panel.</p>
                 <div style={s.teamFormRow}>
                   <form onSubmit={addDelivery} style={s.teamForm}>
-                    <input
-                      style={s.input}
-                      type="email"
-                      placeholder="Email address"
-                      value={teamForm.email}
-                      onChange={(e) => setTeamForm({ ...teamForm, email: e.target.value })}
-                      required
-                    />
-                    <input
-                      style={s.input}
-                      type="password"
-                      placeholder="Temporary password"
-                      value={teamForm.password}
-                      onChange={(e) => setTeamForm({ ...teamForm, password: e.target.value })}
-                      required
-                    />
+                    <input style={s.input} type="email" placeholder="Email address" value={teamForm.email}
+                      onChange={(e) => setTeamForm({ ...teamForm, email: e.target.value })} required />
+                    <input style={s.input} type="password" placeholder="Temporary password" value={teamForm.password}
+                      onChange={(e) => setTeamForm({ ...teamForm, password: e.target.value })} required />
                     <button style={s.addBtn} type="submit" disabled={loading}>
                       {loading ? "Creating..." : "Create Delivery Account"}
                     </button>
                   </form>
                   <div style={s.teamHint}>
                     <div style={s.teamHintIcon}>💡</div>
-                    <p style={s.teamHintText}>
-                      Delivery staff get access to the delivery panel only. They can see and update the status of confirmed orders.
-                    </p>
+                    <p style={s.teamHintText}>Delivery staff get access to the delivery panel only. They see and update the status of confirmed delivery orders.</p>
                   </div>
                 </div>
               </div>
@@ -524,9 +614,7 @@ export default function Admin() {
                         <div style={s.teamAvatar}>{u.email[0].toUpperCase()}</div>
                         <div style={{ flex: 1 }}>
                           <p style={s.teamEmail}>{u.email}</p>
-                          <p style={s.teamDate}>
-                            Added {new Date(u.created_at).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })}
-                          </p>
+                          <p style={s.teamDate}>Added {new Date(u.created_at).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })}</p>
                         </div>
                         <span style={{ ...s.badge, background: "#e3f2fd", color: "#1565c0" }}>🚚 Delivery Staff</span>
                       </div>
@@ -547,39 +635,23 @@ export default function Admin() {
                   <div style={s.settingsGrid}>
                     <div style={s.field}>
                       <label style={s.label}>Shop Name</label>
-                      <input
-                        style={s.input}
-                        placeholder="საკონდიტრო"
-                        value={settings.shopName || ""}
-                        onChange={e => setSettings({ ...settings, shopName: e.target.value })}
-                      />
+                      <input style={s.input} placeholder="საკონდიტრო" value={settings.shopName || ""}
+                        onChange={e => setSettings({ ...settings, shopName: e.target.value })} />
                     </div>
                     <div style={s.field}>
                       <label style={s.label}>Phone Number</label>
-                      <input
-                        style={s.input}
-                        placeholder="+995 555 000 000"
-                        value={settings.phone || ""}
-                        onChange={e => setSettings({ ...settings, phone: e.target.value })}
-                      />
+                      <input style={s.input} placeholder="+995 555 000 000" value={settings.phone || ""}
+                        onChange={e => setSettings({ ...settings, phone: e.target.value })} />
                     </div>
                     <div style={s.field}>
                       <label style={s.label}>Address / Location</label>
-                      <input
-                        style={s.input}
-                        placeholder="Tbilisi, Georgia"
-                        value={settings.address || ""}
-                        onChange={e => setSettings({ ...settings, address: e.target.value })}
-                      />
+                      <input style={s.input} placeholder="Tbilisi, Georgia" value={settings.address || ""}
+                        onChange={e => setSettings({ ...settings, address: e.target.value })} />
                     </div>
                     <div style={s.field}>
                       <label style={s.label}>Pickup Note (shown to customers)</label>
-                      <input
-                        style={s.input}
-                        placeholder="e.g. Tamar's Kitchen, Vake district"
-                        value={settings.pickupNote || ""}
-                        onChange={e => setSettings({ ...settings, pickupNote: e.target.value })}
-                      />
+                      <input style={s.input} placeholder="e.g. Tamar's Kitchen, Vake district" value={settings.pickupNote || ""}
+                        onChange={e => setSettings({ ...settings, pickupNote: e.target.value })} />
                     </div>
                   </div>
                 </div>
@@ -591,19 +663,11 @@ export default function Admin() {
                     {[["Mon – Fri", "weekdays"], ["Saturday", "saturday"], ["Sunday", "sunday"]].map(([label, key]) => (
                       <div key={key} style={s.hoursRow}>
                         <span style={s.hoursDay}>{label}</span>
-                        <input
-                          style={{ ...s.input, width: "120px", marginBottom: 0 }}
-                          placeholder="9:00"
-                          value={settings[`${key}Open`] || ""}
-                          onChange={e => setSettings({ ...settings, [`${key}Open`]: e.target.value })}
-                        />
+                        <input style={{ ...s.input, width: "110px", marginBottom: 0 }} placeholder="9:00" value={settings[`${key}Open`] || ""}
+                          onChange={e => setSettings({ ...settings, [`${key}Open`]: e.target.value })} />
                         <span style={s.hoursDash}>—</span>
-                        <input
-                          style={{ ...s.input, width: "120px", marginBottom: 0 }}
-                          placeholder="20:00 / Closed"
-                          value={settings[`${key}Close`] || ""}
-                          onChange={e => setSettings({ ...settings, [`${key}Close`]: e.target.value })}
-                        />
+                        <input style={{ ...s.input, width: "130px", marginBottom: 0 }} placeholder="20:00 / Closed" value={settings[`${key}Close`] || ""}
+                          onChange={e => setSettings({ ...settings, [`${key}Close`]: e.target.value })} />
                       </div>
                     ))}
                   </div>
@@ -645,7 +709,7 @@ const s = {
   sidebarSub: { color: "rgba(255,255,255,0.3)", fontSize: "0.64rem", letterSpacing: "0.15em", textTransform: "uppercase", marginTop: "2px" },
 
   nav: { flex: 1, padding: "1.2rem 0.8rem", overflowY: "auto" },
-  navBtn: { display: "flex", alignItems: "center", gap: "0.65rem", width: "100%", padding: "0.72rem 1rem", background: "transparent", border: "none", color: "rgba(255,255,255,0.45)", borderRadius: "12px", cursor: "pointer", fontSize: "0.86rem", fontWeight: "500", marginBottom: "0.15rem", textAlign: "left", position: "relative", transition: "background 0.15s, color 0.15s" },
+  navBtn: { display: "flex", alignItems: "center", gap: "0.65rem", width: "100%", padding: "0.72rem 1rem", background: "transparent", border: "none", color: "rgba(255,255,255,0.45)", borderRadius: "12px", cursor: "pointer", fontSize: "0.86rem", fontWeight: "500", marginBottom: "0.15rem", textAlign: "left", position: "relative" },
   navActive: { background: "linear-gradient(135deg, #d4235e, #a01848)", color: "white" },
   navIcon: { fontSize: "1rem", flexShrink: 0 },
   navBadge: { marginLeft: "auto", background: "#ef4444", color: "white", borderRadius: "50%", fontSize: "0.65rem", fontWeight: "800", padding: "1px 6px", minWidth: "20px", textAlign: "center" },
@@ -654,7 +718,7 @@ const s = {
   adminInfo: { display: "flex", alignItems: "center", gap: "0.75rem", padding: "0.8rem", background: "rgba(255,255,255,0.05)", borderRadius: "12px", marginBottom: "0.3rem" },
   adminAvatar: { width: "34px", height: "34px", borderRadius: "50%", background: "linear-gradient(135deg, #d4235e, #a01848)", color: "white", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: "700", fontSize: "0.85rem", flexShrink: 0 },
   adminName: { color: "rgba(255,255,255,0.75)", fontSize: "0.8rem", fontWeight: "600" },
-  adminRole: { color: "rgba(255,255,255,0.3)", fontSize: "0.65rem", letterSpacing: "0.05em" },
+  adminRole: { color: "rgba(255,255,255,0.3)", fontSize: "0.65rem" },
   shopBtn: { display: "flex", alignItems: "center", gap: "0.5rem", padding: "0.65rem 1rem", background: "rgba(255,255,255,0.07)", border: "none", color: "rgba(255,255,255,0.6)", borderRadius: "10px", cursor: "pointer", fontSize: "0.82rem" },
   logoutBtn: { display: "flex", alignItems: "center", gap: "0.5rem", padding: "0.65rem 1rem", background: "rgba(212,35,94,0.15)", border: "none", color: "#e87da0", borderRadius: "10px", cursor: "pointer", fontSize: "0.82rem" },
 
@@ -669,10 +733,9 @@ const s = {
   content: { padding: "2rem" },
 
   statsGrid: { display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(175px, 1fr))", gap: "1rem", marginBottom: "2rem" },
-  statCard: { borderRadius: "18px", padding: "1.3rem", display: "flex", alignItems: "flex-start", gap: "1rem", boxShadow: "0 2px 12px rgba(0,0,0,0.04)", transition: "transform 0.2s" },
+  statCard: { borderRadius: "18px", padding: "1.3rem", display: "flex", alignItems: "flex-start", gap: "1rem", boxShadow: "0 2px 12px rgba(0,0,0,0.04)" },
   statIconWrap: { width: "44px", height: "44px", borderRadius: "12px", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 },
   statIcon: { fontSize: "1.3rem" },
-  statRight: {},
   statValue: { fontFamily: "'Playfair Display', serif", fontSize: "1.7rem", fontWeight: "700", lineHeight: 1 },
   statLabel: { fontSize: "0.78rem", fontWeight: "600", color: "#1c0f18", marginTop: "0.3rem" },
   statSub: { fontSize: "0.68rem", color: "#8b6070", marginTop: "0.15rem" },
@@ -682,10 +745,12 @@ const s = {
   dashId: { background: "#f5eef2", color: "#8b6070", borderRadius: "8px", padding: "0.2rem 0.55rem", fontSize: "0.72rem", fontWeight: "700", flexShrink: 0, marginTop: "2px" },
   dashName: { fontWeight: "600", color: "#1c0f18", fontSize: "0.86rem", marginBottom: "0.1rem" },
   dashItems: { color: "#8b6070", fontSize: "0.75rem" },
-  dashRight: { display: "flex", alignItems: "center", gap: "0.7rem", flexShrink: 0 },
+  dashRight: { display: "flex", alignItems: "center", gap: "0.6rem", flexShrink: 0 },
   dashTotal: { fontWeight: "700", color: "#1c0f18", fontSize: "0.88rem" },
   dashProductRow: { display: "flex", alignItems: "center", gap: "0.8rem", padding: "0.75rem 0", borderBottom: "1px solid #faf3f7" },
   dashProductEmoji: { fontSize: "1.6rem", flexShrink: 0 },
+  dashProductImg: { width: "36px", height: "36px", borderRadius: "8px", objectFit: "cover", flexShrink: 0 },
+  orderCodeTag: { background: "#f5eef2", color: "#8b6070", fontFamily: "monospace", fontSize: "0.7rem", fontWeight: "700", padding: "0.18rem 0.55rem", borderRadius: "6px", letterSpacing: "0.05em" },
 
   orderToolbar: { display: "flex", gap: "1rem", marginBottom: "1.2rem", flexWrap: "wrap", alignItems: "center" },
   filterTabs: { display: "flex", gap: "0.3rem", background: "white", padding: "4px", borderRadius: "14px", border: "1px solid #f0eaf4", flexWrap: "wrap" },
@@ -706,10 +771,12 @@ const s = {
   orderCardTop: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.6rem", flexWrap: "wrap", gap: "0.5rem" },
   orderCardLeft: { display: "flex", alignItems: "center", gap: "0.5rem", flexWrap: "wrap" },
   orderId: { fontWeight: "700", color: "#1c0f18", fontSize: "0.88rem" },
+  orderCodeBadge: { background: "#f0f4f8", color: "#475569", fontFamily: "monospace", fontSize: "0.72rem", fontWeight: "700", padding: "0.18rem 0.65rem", borderRadius: "6px", letterSpacing: "0.08em" },
   orderTypeBadge: { background: "#f0f4f8", color: "#475569", padding: "0.15rem 0.65rem", borderRadius: "50px", fontSize: "0.7rem", fontWeight: "600" },
   orderDate: { color: "#8b6070", fontSize: "0.76rem" },
   orderDetails: { display: "flex", gap: "1rem", flexWrap: "wrap", marginBottom: "0.5rem" },
   orderDetail: { color: "#6b4c58", fontSize: "0.81rem" },
+  orderPhone: { color: "#1d4ed8", fontSize: "0.81rem", textDecoration: "none", fontWeight: "500" },
   orderItems: { color: "#333", fontSize: "0.85rem", marginBottom: "0.8rem" },
   orderCardBottom: { display: "flex", justifyContent: "space-between", alignItems: "center" },
   orderTotal: { fontWeight: "700", color: "#1c0f18", fontSize: "0.95rem" },
@@ -717,16 +784,22 @@ const s = {
 
   badge: { padding: "0.2rem 0.75rem", borderRadius: "50px", fontSize: "0.72rem", fontWeight: "600" },
 
-  productGrid: { display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))", gap: "1.2rem" },
-  productCard: { background: "#fdf6f2", borderRadius: "16px", padding: "1.4rem", textAlign: "center", border: "1px solid #f0eaf4", transition: "opacity 0.2s" },
-  productEmojiWrap: { fontSize: "2.8rem", marginBottom: "0.6rem" },
-  productName: { fontFamily: "'Playfair Display', serif", fontWeight: "700", color: "#1c0f18", fontSize: "0.92rem", marginBottom: "0.3rem" },
-  productDesc: { color: "#8b6070", fontSize: "0.72rem", lineHeight: 1.5, marginBottom: "0.4rem" },
-  productPrice: { color: "#d4235e", fontWeight: "700", fontSize: "1.05rem", marginBottom: "0.5rem" },
-  productStatusRow: { marginBottom: "0.8rem" },
-  productActions: { display: "flex", gap: "0.5rem", justifyContent: "center" },
-  toggleBtn: { flex: 1, padding: "0.4rem", background: "#e3f2fd", border: "none", borderRadius: "8px", cursor: "pointer", fontSize: "0.78rem", color: "#1565c0", fontWeight: "500" },
-  deleteBtn: { padding: "0.4rem 0.7rem", background: "#fce4ec", border: "none", borderRadius: "8px", cursor: "pointer", fontSize: "0.85rem" },
+  productGrid: { display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(190px, 1fr))", gap: "1.2rem" },
+  productCard: { background: "#fdf6f2", borderRadius: "18px", overflow: "hidden", border: "1px solid #f0eaf4" },
+  productImgWrap: { position: "relative", background: "linear-gradient(135deg, #fff0f5, #ffdae8)", height: "160px", display: "flex", alignItems: "center", justifyContent: "center" },
+  productImg: { width: "100%", height: "100%", objectFit: "cover" },
+  productEmoji: { fontSize: "3.5rem" },
+  photoOverlay: { position: "absolute", inset: 0, background: "rgba(0,0,0,0)", display: "flex", alignItems: "center", justifyContent: "center", gap: "0.5rem", opacity: 0, transition: "opacity 0.2s", cursor: "pointer" },
+  photoOverlayBtn: { background: "rgba(0,0,0,0.65)", color: "white", width: "42px", height: "42px", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "1.2rem", cursor: "pointer" },
+  photoRemoveBtn: { background: "rgba(239,68,68,0.85)", color: "white", border: "none", width: "30px", height: "30px", borderRadius: "50%", cursor: "pointer", fontSize: "0.75rem", fontWeight: "700", display: "flex", alignItems: "center", justifyContent: "center" },
+  productInfo: { padding: "1rem" },
+  productName: { fontFamily: "'Playfair Display', serif", fontWeight: "700", color: "#1c0f18", fontSize: "0.92rem", marginBottom: "0.25rem" },
+  productDesc: { color: "#8b6070", fontSize: "0.72rem", lineHeight: 1.4, marginBottom: "0.3rem" },
+  productPrice: { color: "#d4235e", fontWeight: "700", fontSize: "1rem", marginBottom: "0.5rem" },
+  productStatusRow: { marginBottom: "0.7rem" },
+  productActions: { display: "flex", gap: "0.5rem" },
+  toggleBtn: { flex: 1, padding: "0.38rem", background: "#e3f2fd", border: "none", borderRadius: "8px", cursor: "pointer", fontSize: "0.78rem", color: "#1565c0", fontWeight: "500" },
+  deleteBtn: { padding: "0.38rem 0.6rem", background: "#fce4ec", border: "none", borderRadius: "8px", cursor: "pointer", fontSize: "0.85rem" },
 
   emptyState: { textAlign: "center", padding: "3rem" },
   emptyIcon: { fontSize: "3rem", display: "block", marginBottom: "0.8rem" },
@@ -738,6 +811,16 @@ const s = {
   addFormLeft: {},
   addFormRight: {},
   label: { display: "block", marginBottom: "0.4rem", color: "#6b4c58", fontSize: "0.8rem", fontWeight: "600" },
+
+  photoUploadArea: { marginBottom: "1.2rem" },
+  photoUploadLabel: { display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", border: "2px dashed #f0dde8", borderRadius: "14px", padding: "2rem 1rem", cursor: "pointer", background: "#fdf8fb", textAlign: "center" },
+  photoUploadIcon: { fontSize: "2rem", marginBottom: "0.5rem" },
+  photoUploadText: { color: "#6b4c58", fontWeight: "600", fontSize: "0.88rem", marginBottom: "0.25rem" },
+  photoUploadSub: { color: "#8b6070", fontSize: "0.74rem" },
+  photoPreviewWrap: { position: "relative", borderRadius: "14px", overflow: "hidden" },
+  photoPreviewImg: { width: "100%", height: "180px", objectFit: "cover", display: "block" },
+  photoRemoveBtn2: { position: "absolute", top: "0.5rem", right: "0.5rem", background: "rgba(0,0,0,0.6)", color: "white", border: "none", padding: "0.3rem 0.7rem", borderRadius: "8px", cursor: "pointer", fontSize: "0.78rem", fontWeight: "600" },
+
   emojiPicker: { display: "flex", flexWrap: "wrap", gap: "0.4rem", marginBottom: "1.2rem" },
   emojiOpt: { width: "40px", height: "40px", background: "#f5eef2", border: "2px solid transparent", borderRadius: "10px", cursor: "pointer", fontSize: "1.3rem", display: "flex", alignItems: "center", justifyContent: "center" },
   emojiOptActive: { border: "2px solid #d4235e", background: "#ffd6e7" },
@@ -746,8 +829,9 @@ const s = {
   addBtn: { background: "linear-gradient(135deg, #d4235e, #a01848)", color: "white", border: "none", padding: "0.85rem 2rem", borderRadius: "12px", fontSize: "0.92rem", fontWeight: "600", cursor: "pointer", marginTop: "0.3rem" },
 
   productPreview: { background: "white", border: "1px solid #f0eaf4", borderRadius: "20px", overflow: "hidden", boxShadow: "0 4px 20px rgba(0,0,0,0.06)" },
-  previewImgWrap: { background: "linear-gradient(135deg, #fff0f5, #ffdae8)", padding: "2rem 1rem", textAlign: "center", position: "relative" },
-  previewEmoji: { fontSize: "4rem", display: "block" },
+  previewImgWrap: { background: "linear-gradient(135deg, #fff0f5, #ffdae8)", height: "180px", display: "flex", alignItems: "center", justifyContent: "center", position: "relative", overflow: "hidden" },
+  previewRealImg: { width: "100%", height: "100%", objectFit: "cover" },
+  previewEmoji: { fontSize: "4rem" },
   previewFreshBadge: { position: "absolute", top: "0.7rem", right: "0.7rem", background: "rgba(212,35,94,0.12)", color: "#d4235e", fontSize: "0.65rem", fontWeight: "700", padding: "0.2rem 0.6rem", borderRadius: "50px" },
   previewBody: { padding: "1.2rem 1.4rem 1.5rem" },
   previewName: { fontFamily: "'Playfair Display', serif", fontSize: "1rem", color: "#1c0f18", fontWeight: "700", marginBottom: "0.4rem" },
@@ -771,7 +855,7 @@ const s = {
   hoursGrid: { display: "flex", flexDirection: "column", gap: "0.8rem" },
   hoursRow: { display: "flex", alignItems: "center", gap: "1rem" },
   hoursDay: { color: "#6b4c58", fontWeight: "500", fontSize: "0.85rem", width: "100px", flexShrink: 0 },
-  hoursDash: { color: "#8b6070", fontSize: "0.9rem" },
+  hoursDash: { color: "#8b6070" },
   accountInfo: { display: "flex", flexDirection: "column", gap: "0.5rem", marginBottom: "1.2rem" },
   accountRow: { display: "flex", alignItems: "center", gap: "1rem", padding: "0.6rem 0", borderBottom: "1px solid #faf3f7" },
   accountLabel: { color: "#8b6070", fontSize: "0.82rem", width: "120px" },

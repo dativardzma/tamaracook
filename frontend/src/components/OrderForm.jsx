@@ -27,8 +27,10 @@ export default function OrderForm({ cart, backendUrl, onClose, onSuccess }) {
         headers,
         body: JSON.stringify({ ...form, items: itemsSummary, total }),
       });
-      if (res.ok) onSuccess();
-      else setError("Something went wrong. Please try again.");
+      if (res.ok) {
+        const data = await res.json();
+        onSuccess(data.order_code || null);
+      } else setError("Something went wrong. Please try again.");
     } catch {
       setError("Could not connect to server.");
     }

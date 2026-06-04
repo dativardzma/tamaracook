@@ -19,6 +19,8 @@ class Product(Base):
     name = Column(String, nullable=False)
     price = Column(Numeric, nullable=False)
     emoji = Column(String)
+    description = Column(String, nullable=True)
+    image_data = Column(Text, nullable=True)   # base64 data URL stored directly
     available = Column(Boolean, default=True)
 
 
@@ -33,4 +35,5 @@ class Order(Base):
     items = Column(Text, nullable=False)
     total = Column(Numeric, nullable=False)
     status = Column(String, default="pending")
+    order_code = Column(String, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())

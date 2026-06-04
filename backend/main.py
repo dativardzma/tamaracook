@@ -1,5 +1,8 @@
 import os
-from fastapi import FastAPI, Depends, HTTPException
+import base64
+import random
+import string
+from fastapi import FastAPI, Depends, HTTPException, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from sqlalchemy import text
@@ -11,13 +14,16 @@ from auth import hash_password, verify_password, create_token, get_current_user,
 
 Base.metadata.create_all(bind=engine)
 
-# Safe additive migrations
+# Safe additive migrations — run every startup, all idempotent
 with engine.connect() as _conn:
     _conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS is_delivery BOOLEAN DEFAULT false"))
     _conn.execute(text("ALTER TABLE orders ADD COLUMN IF NOT EXISTS user_id INTEGER REFERENCES users(id)"))
     _conn.execute(text("ALTER TABLE orders ADD COLUMN IF NOT EXISTS status VARCHAR DEFAULT 'pending'"))
     _conn.execute(text("ALTER TABLE orders ADD COLUMN IF NOT EXISTS order_type VARCHAR DEFAULT 'delivery'"))
     _conn.execute(text("ALTER TABLE orders ADD COLUMN IF NOT EXISTS address VARCHAR"))
+    _conn.execute(text("ALTER TABLE orders ADD COLUMN IF NOT EXISTS order_code VARCHAR"))
+    _conn.execute(text("ALTER TABLE products ADD COLUMN IF NOT EXISTS description VARCHAR"))
+    _conn.execute(text("ALTER TABLE products ADD COLUMN IF NOT EXISTS image_data TEXT"))
     _conn.commit()
 
 app = FastAPI()
@@ -29,6 +35,8 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+
+# ── Schemas ────────────────────────────────────────────────────────────────────
 
 class AdminSignup(BaseModel):
     email: str
@@ -56,15 +64,19 @@ class OrderStatusUpdate(BaseModel):
 class ProductCreate(BaseModel):
     name: str
     price: float
-    emoji: str
+    emoji: str = "🍰"
+    description: Optional[str] = None
     available: bool = True
 
 class ProductUpdate(BaseModel):
     name: Optional[str] = None
     price: Optional[float] = None
     emoji: Optional[str] = None
+    description: Optional[str] = None
     available: Optional[bool] = None
 
+
+# ── Helpers ────────────────────────────────────────────────────────────────────
 
 def user_response(user, token):
     return {
@@ -74,8 +86,24 @@ def user_response(user, token):
         "is_delivery": user.is_delivery,
     }
 
+def generate_order_code() -> str:
+    """Random 6-character uppercase alphanumeric code, e.g. 'K3X9PQ'."""
+    return ''.join(random.choices(string.ascii_uppercase + string.digits, k=6))
 
-# Auth
+def product_dict(p: Product) -> dict:
+    return {
+        "id": p.id,
+        "name": p.name,
+        "price": str(p.price),
+        "emoji": p.emoji,
+        "description": p.description,
+        "image_data": p.image_data,
+        "available": p.available,
+    }
+
+
+# ── Auth ───────────────────────────────────────────────────────────────────────
+
 @app.post("/api/auth/register")
 def register(data: UserRegister, db: Session = Depends(get_db)):
     if db.query(User).filter(User.email == data.email).first():
@@ -112,35 +140,84 @@ def login(data: Login, db: Session = Depends(get_db)):
     return user_response(user, create_token(user.id))
 
 
-# Public
+# ── Public ─────────────────────────────────────────────────────────────────────
+
 @app.get("/api/products")
 def get_products(db: Session = Depends(get_db)):
-    return db.query(Product).filter(Product.available == True).all()
+    products = db.query(Product).filter(Product.available == True).all()
+    return [product_dict(p) for p in products]
 
 @app.post("/api/orders")
-def create_order(order: OrderCreate, db: Session = Depends(get_db), current_user=Depends(get_current_user_optional)):
-    db_order = Order(**order.model_dump(), user_id=current_user.id if current_user else None)
+def create_order(
+    order: OrderCreate,
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user_optional)
+):
+    code = generate_order_code()
+    db_order = Order(
+        **order.model_dump(),
+        user_id=current_user.id if current_user else None,
+        order_code=code,
+    )
     db.add(db_order)
     db.commit()
     db.refresh(db_order)
-    return {"message": "Order placed successfully!", "id": db_order.id}
+    return {
+        "message": "Order placed successfully!",
+        "id": db_order.id,
+        "order_code": code,
+    }
 
 @app.get("/api/orders/my")
 def my_orders(db: Session = Depends(get_db), current_user=Depends(get_current_user)):
-    return db.query(Order).filter(Order.user_id == current_user.id).order_by(Order.created_at.desc()).all()
+    orders = db.query(Order).filter(Order.user_id == current_user.id).order_by(Order.created_at.desc()).all()
+    return [
+        {
+            "id": o.id,
+            "items": o.items,
+            "total": str(o.total),
+            "status": o.status,
+            "order_type": o.order_type,
+            "order_code": o.order_code,
+            "address": o.address,
+            "created_at": o.created_at.isoformat() if o.created_at else None,
+        }
+        for o in orders
+    ]
 
 @app.get("/api/health")
 def health():
     return {"status": "ok"}
 
 
-# Delivery
+# ── Delivery ───────────────────────────────────────────────────────────────────
+
 @app.get("/api/delivery/orders")
 def delivery_orders(db: Session = Depends(get_db), user=Depends(require_delivery)):
-    return db.query(Order).filter(Order.order_type == "delivery").order_by(Order.created_at.desc()).all()
+    orders = db.query(Order).filter(Order.order_type == "delivery").order_by(Order.created_at.desc()).all()
+    return [
+        {
+            "id": o.id,
+            "customer_name": o.customer_name,
+            "phone": o.phone,
+            "address": o.address,
+            "items": o.items,
+            "total": str(o.total),
+            "status": o.status,
+            "order_type": o.order_type,
+            "order_code": o.order_code,
+            "created_at": o.created_at.isoformat() if o.created_at else None,
+        }
+        for o in orders
+    ]
 
 @app.put("/api/delivery/orders/{order_id}/status")
-def delivery_update_status(order_id: int, data: OrderStatusUpdate, db: Session = Depends(get_db), user=Depends(require_delivery)):
+def delivery_update_status(
+    order_id: int,
+    data: OrderStatusUpdate,
+    db: Session = Depends(get_db),
+    user=Depends(require_delivery)
+):
     allowed = ["out_for_delivery", "delivered"]
     if data.status not in allowed:
         raise HTTPException(status_code=400, detail="Invalid status for delivery")
@@ -152,10 +229,12 @@ def delivery_update_status(order_id: int, data: OrderStatusUpdate, db: Session =
     return {"message": "Status updated"}
 
 
-# Admin
+# ── Admin: Products ────────────────────────────────────────────────────────────
+
 @app.get("/api/admin/products", dependencies=[Depends(require_admin)])
 def admin_get_products(db: Session = Depends(get_db)):
-    return db.query(Product).all()
+    products = db.query(Product).all()
+    return [product_dict(p) for p in products]
 
 @app.post("/api/admin/products", dependencies=[Depends(require_admin)])
 def admin_create_product(product: ProductCreate, db: Session = Depends(get_db)):
@@ -163,7 +242,7 @@ def admin_create_product(product: ProductCreate, db: Session = Depends(get_db)):
     db.add(db_product)
     db.commit()
     db.refresh(db_product)
-    return db_product
+    return product_dict(db_product)
 
 @app.put("/api/admin/products/{product_id}", dependencies=[Depends(require_admin)])
 def admin_update_product(product_id: int, data: ProductUpdate, db: Session = Depends(get_db)):
@@ -174,7 +253,37 @@ def admin_update_product(product_id: int, data: ProductUpdate, db: Session = Dep
         setattr(product, key, value)
     db.commit()
     db.refresh(product)
-    return product
+    return product_dict(product)
+
+@app.post("/api/admin/products/{product_id}/image")
+async def upload_product_image(
+    product_id: int,
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db),
+    admin: User = Depends(require_admin),
+):
+    product = db.query(Product).filter(Product.id == product_id).first()
+    if not product:
+        raise HTTPException(status_code=404, detail="Product not found")
+
+    contents = await file.read()
+    if len(contents) > 8 * 1024 * 1024:
+        raise HTTPException(status_code=400, detail="Image too large. Max 8 MB.")
+
+    mime = file.content_type or "image/jpeg"
+    b64 = base64.b64encode(contents).decode()
+    product.image_data = f"data:{mime};base64,{b64}"
+    db.commit()
+    return {"message": "Image uploaded", "id": product.id}
+
+@app.delete("/api/admin/products/{product_id}/image", dependencies=[Depends(require_admin)])
+def remove_product_image(product_id: int, db: Session = Depends(get_db)):
+    product = db.query(Product).filter(Product.id == product_id).first()
+    if not product:
+        raise HTTPException(status_code=404, detail="Product not found")
+    product.image_data = None
+    db.commit()
+    return {"message": "Image removed"}
 
 @app.delete("/api/admin/products/{product_id}", dependencies=[Depends(require_admin)])
 def admin_delete_product(product_id: int, db: Session = Depends(get_db)):
@@ -185,9 +294,27 @@ def admin_delete_product(product_id: int, db: Session = Depends(get_db)):
     db.commit()
     return {"message": "Product deleted"}
 
+
+# ── Admin: Orders ──────────────────────────────────────────────────────────────
+
 @app.get("/api/admin/orders", dependencies=[Depends(require_admin)])
 def admin_get_orders(db: Session = Depends(get_db)):
-    return db.query(Order).order_by(Order.created_at.desc()).all()
+    orders = db.query(Order).order_by(Order.created_at.desc()).all()
+    return [
+        {
+            "id": o.id,
+            "customer_name": o.customer_name,
+            "phone": o.phone,
+            "address": o.address,
+            "items": o.items,
+            "total": str(o.total),
+            "status": o.status,
+            "order_type": o.order_type,
+            "order_code": o.order_code,
+            "created_at": o.created_at.isoformat() if o.created_at else None,
+        }
+        for o in orders
+    ]
 
 @app.put("/api/admin/orders/{order_id}/status", dependencies=[Depends(require_admin)])
 def admin_update_order_status(order_id: int, data: OrderStatusUpdate, db: Session = Depends(get_db)):
@@ -197,6 +324,9 @@ def admin_update_order_status(order_id: int, data: OrderStatusUpdate, db: Sessio
     order.status = data.status
     db.commit()
     return {"message": "Status updated"}
+
+
+# ── Admin: Team ────────────────────────────────────────────────────────────────
 
 @app.get("/api/admin/team", dependencies=[Depends(require_admin)])
 def admin_get_team(db: Session = Depends(get_db)):

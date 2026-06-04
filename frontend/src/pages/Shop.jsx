@@ -14,6 +14,7 @@ export default function Shop() {
   const [cartOpen, setCartOpen] = useState(false);
   const [orderOpen, setOrderOpen] = useState(false);
   const [orderSuccess, setOrderSuccess] = useState(false);
+  const [orderCode, setOrderCode] = useState(null);
   const [authOpen, setAuthOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
   const [userEmail, setUserEmail] = useState(() => localStorage.getItem("email"));
@@ -184,7 +185,10 @@ export default function Shop() {
                 }}
               >
                 <div style={s.cardImgWrap}>
-                  <span style={s.cardEmoji}>{p.emoji}</span>
+                  {p.image_data
+                    ? <img src={p.image_data} style={s.cardRealImg} alt={p.name} />
+                    : <span style={s.cardEmoji}>{p.emoji}</span>
+                  }
                   <div style={s.freshBadge}>✓ Fresh Today</div>
                 </div>
                 <div style={s.cardBody}>
@@ -315,11 +319,11 @@ export default function Shop() {
           cart={cart}
           backendUrl={BACKEND_URL}
           onClose={() => setOrderOpen(false)}
-          onSuccess={() => {
+          onSuccess={(code) => {
             setCart([]);
             setOrderOpen(false);
+            setOrderCode(code);
             setOrderSuccess(true);
-            setTimeout(() => setOrderSuccess(false), 5000);
           }}
         />
       )}
@@ -348,7 +352,26 @@ export default function Shop() {
         />
       )}
       {orderSuccess && (
-        <div style={s.toast}>✅ Order placed! We'll call you shortly to confirm.</div>
+        <div style={os.overlay} onClick={() => setOrderSuccess(false)}>
+          <div style={os.modal} onClick={e => e.stopPropagation()}>
+            <div style={os.iconCircle}>✅</div>
+            <h2 style={os.title}>Order Placed!</h2>
+            <p style={os.sub}>We'll call you shortly to confirm your order</p>
+            {orderCode && (
+              <div style={os.codeSection}>
+                <p style={os.codeLabel}>YOUR ORDER CODE</p>
+                <div style={os.code}>{orderCode}</div>
+                <p style={os.codeHint}>Save this code — you can use it to track your order</p>
+              </div>
+            )}
+            <div style={os.tips}>
+              <div style={os.tip}>📞 We'll call you to confirm within a few minutes</div>
+              <div style={os.tip}>🚚 Estimated delivery time: 45–75 minutes</div>
+              <div style={os.tip}>🍰 Your treats are being freshly prepared</div>
+            </div>
+            <button style={os.closeBtn} onClick={() => setOrderSuccess(false)}>Close</button>
+          </div>
+        </div>
       )}
     </div>
   );
@@ -415,8 +438,9 @@ const s = {
 
   grid: { display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))", gap: "1.6rem" },
   card: { background: "white", borderRadius: "22px", overflow: "hidden", boxShadow: "0 4px 24px rgba(0,0,0,0.07)", transition: "transform 0.25s ease, box-shadow 0.25s ease" },
-  cardImgWrap: { background: "linear-gradient(135deg, #fff0f5, #ffdae8)", padding: "2.5rem 1rem 2rem", textAlign: "center", position: "relative" },
-  cardEmoji: { fontSize: "4rem", display: "block" },
+  cardImgWrap: { background: "linear-gradient(135deg, #fff0f5, #ffdae8)", height: "200px", display: "flex", alignItems: "center", justifyContent: "center", position: "relative", overflow: "hidden" },
+  cardRealImg: { width: "100%", height: "100%", objectFit: "cover" },
+  cardEmoji: { fontSize: "4rem" },
   freshBadge: { position: "absolute", top: "0.8rem", right: "0.8rem", background: "rgba(212,35,94,0.12)", color: "#d4235e", fontSize: "0.65rem", fontWeight: "700", padding: "0.2rem 0.6rem", borderRadius: "50px", letterSpacing: "0.03em" },
   cardBody: { padding: "1.3rem 1.5rem 1.6rem" },
   cardName: { fontFamily: "'Playfair Display', serif", fontSize: "1.05rem", fontWeight: "700", color: "#1c0f18", marginBottom: "0.4rem" },
@@ -467,6 +491,19 @@ const s = {
   footerBottom: { maxWidth: "1280px", margin: "0 auto", padding: "1.5rem 0", display: "flex", justifyContent: "center" },
   footerCopy: { color: "rgba(255,255,255,0.2)", fontSize: "0.78rem" },
 
-  /* Toast */
-  toast: { position: "fixed", bottom: "2rem", left: "50%", transform: "translateX(-50%)", background: "linear-gradient(135deg, #2e7d32, #1b5e20)", color: "white", padding: "1rem 2rem", borderRadius: "50px", fontSize: "0.92rem", fontWeight: "600", zIndex: 1000, boxShadow: "0 8px 30px rgba(46,125,50,0.4)", whiteSpace: "nowrap" },
+};
+
+const os = {
+  overlay: { position: "fixed", inset: 0, background: "rgba(28,15,24,0.7)", zIndex: 400, display: "flex", alignItems: "center", justifyContent: "center", backdropFilter: "blur(6px)", padding: "1rem" },
+  modal: { background: "white", borderRadius: "28px", padding: "2.5rem 2rem", width: "100%", maxWidth: "420px", textAlign: "center", boxShadow: "0 40px 80px rgba(0,0,0,0.25)" },
+  iconCircle: { width: "80px", height: "80px", background: "linear-gradient(135deg, #e8f5e9, #c8e6c9)", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "2.4rem", margin: "0 auto 1.2rem" },
+  title: { fontFamily: "'Playfair Display', serif", color: "#1c0f18", fontSize: "1.7rem", fontWeight: "700", marginBottom: "0.4rem" },
+  sub: { color: "#8b6070", fontSize: "0.88rem", marginBottom: "1.5rem" },
+  codeSection: { background: "linear-gradient(135deg, #1c0f18, #3a1430)", borderRadius: "18px", padding: "1.2rem 1.5rem", marginBottom: "1.2rem" },
+  codeLabel: { color: "rgba(255,255,255,0.5)", fontSize: "0.64rem", fontWeight: "700", letterSpacing: "0.18em", textTransform: "uppercase", marginBottom: "0.5rem" },
+  code: { fontFamily: "monospace", color: "white", fontSize: "2.2rem", fontWeight: "800", letterSpacing: "0.2em", marginBottom: "0.5rem" },
+  codeHint: { color: "rgba(255,255,255,0.4)", fontSize: "0.72rem" },
+  tips: { display: "flex", flexDirection: "column", gap: "0.5rem", background: "#fdf6f2", borderRadius: "14px", padding: "1rem 1.2rem", marginBottom: "1.5rem", textAlign: "left" },
+  tip: { color: "#6b4c58", fontSize: "0.82rem", lineHeight: 1.5 },
+  closeBtn: { width: "100%", background: "linear-gradient(135deg, #d4235e, #a01848)", color: "white", border: "none", padding: "0.9rem", borderRadius: "14px", fontSize: "0.95rem", fontWeight: "700", cursor: "pointer" },
 };
