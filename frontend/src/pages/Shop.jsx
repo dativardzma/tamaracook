@@ -43,7 +43,6 @@ export default function Shop() {
             <button style={s.cartBtn} onClick={() => setCartOpen(true)}>
               🛒{totalItems > 0 && <span style={s.badge}>{totalItems}</span>}
             </button>
-            <button style={s.adminBtn} onClick={() => navigate("/admin")}>⚙️</button>
           </div>
         </div>
       </header>
