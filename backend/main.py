@@ -10,8 +10,6 @@ from auth import hash_password, verify_password, create_token, require_admin
 
 Base.metadata.create_all(bind=engine)
 
-ADMIN_SECRET = os.environ.get("ADMIN_SECRET", "change-this")
-
 app = FastAPI()
 
 app.add_middleware(
@@ -25,7 +23,6 @@ app.add_middleware(
 class AdminSignup(BaseModel):
     email: str
     password: str
-    secret: str
 
 class UserRegister(BaseModel):
     email: str
@@ -67,8 +64,6 @@ def register(data: UserRegister, db: Session = Depends(get_db)):
 
 @app.post("/api/auth/admin/signup")
 def admin_signup(data: AdminSignup, db: Session = Depends(get_db)):
-    if data.secret != ADMIN_SECRET:
-        raise HTTPException(status_code=403, detail="Invalid admin secret")
     if db.query(User).filter(User.email == data.email).first():
         raise HTTPException(status_code=400, detail="Email already registered")
     user = User(email=data.email, password=hash_password(data.password), is_admin=True)

@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Cart from "../components/Cart";
 import OrderForm from "../components/OrderForm";
+import AuthModal from "../components/AuthModal";
 
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "";
 
@@ -12,6 +13,8 @@ export default function Shop() {
   const [cartOpen, setCartOpen] = useState(false);
   const [orderOpen, setOrderOpen] = useState(false);
   const [orderSuccess, setOrderSuccess] = useState(false);
+  const [authOpen, setAuthOpen] = useState(false);
+  const [userEmail, setUserEmail] = useState(() => localStorage.getItem("email"));
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -40,6 +43,14 @@ export default function Shop() {
             <p style={s.sub}>Fresh baked goods, made with love</p>
           </div>
           <div style={s.headerRight}>
+            {userEmail ? (
+              <div style={s.userInfo}>
+                <span style={s.userEmail}>{userEmail}</span>
+                <button style={s.signOutBtn} onClick={() => { localStorage.removeItem("token"); localStorage.removeItem("email"); setUserEmail(null); }}>Sign Out</button>
+              </div>
+            ) : (
+              <button style={s.authBtn} onClick={() => setAuthOpen(true)}>Sign In / Sign Up</button>
+            )}
             <button style={s.cartBtn} onClick={() => setCartOpen(true)}>
               🛒{totalItems > 0 && <span style={s.badge}>{totalItems}</span>}
             </button>
@@ -70,6 +81,7 @@ export default function Shop() {
       {cartOpen && <Cart cart={cart} setCart={setCart} onClose={() => setCartOpen(false)} onOrder={() => { setCartOpen(false); setOrderOpen(true); }} />}
       {orderOpen && <OrderForm cart={cart} backendUrl={BACKEND_URL} onClose={() => setOrderOpen(false)} onSuccess={() => { setCart([]); setOrderOpen(false); setOrderSuccess(true); setTimeout(() => setOrderSuccess(false), 4000); }} />}
       {orderSuccess && <div style={s.toast}>✅ Order placed! We'll call you soon.</div>}
+      {authOpen && <AuthModal onClose={() => setAuthOpen(false)} onSuccess={() => { setUserEmail(localStorage.getItem("email")); setAuthOpen(false); }} />}
     </div>
   );
 }
@@ -81,6 +93,10 @@ const s = {
   title: { color: "white", fontSize: "2rem", fontWeight: "700", letterSpacing: "-0.5px" },
   sub: { color: "rgba(255,255,255,0.8)", fontSize: "0.9rem", marginTop: "0.2rem" },
   headerRight: { display: "flex", gap: "0.8rem", alignItems: "center" },
+  authBtn: { background: "rgba(255,255,255,0.2)", border: "2px solid rgba(255,255,255,0.4)", color: "white", padding: "0.6rem 1.2rem", borderRadius: "50px", cursor: "pointer", fontSize: "0.9rem", fontWeight: "600", backdropFilter: "blur(10px)" },
+  userInfo: { display: "flex", alignItems: "center", gap: "0.6rem" },
+  userEmail: { color: "rgba(255,255,255,0.9)", fontSize: "0.85rem", fontWeight: "500" },
+  signOutBtn: { background: "rgba(255,255,255,0.15)", border: "1px solid rgba(255,255,255,0.3)", color: "white", padding: "0.4rem 0.8rem", borderRadius: "50px", cursor: "pointer", fontSize: "0.8rem" },
   cartBtn: { background: "rgba(255,255,255,0.2)", border: "2px solid rgba(255,255,255,0.4)", color: "white", padding: "0.6rem 1.2rem", borderRadius: "50px", cursor: "pointer", fontSize: "1.1rem", fontWeight: "600", backdropFilter: "blur(10px)", position: "relative" },
   badge: { background: "white", color: "#e91e8c", borderRadius: "50%", padding: "1px 6px", marginLeft: "4px", fontSize: "0.75rem", fontWeight: "700" },
   adminBtn: { background: "rgba(255,255,255,0.15)", border: "2px solid rgba(255,255,255,0.3)", color: "white", padding: "0.6rem 0.8rem", borderRadius: "50%", cursor: "pointer", fontSize: "1rem" },
