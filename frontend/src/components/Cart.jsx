@@ -1,75 +1,74 @@
-import AuthModal from "./AuthModal";
 import { useState } from "react";
+import { useTheme } from "../context/ThemeContext";
+import AuthModal from "./AuthModal";
 
 export default function Cart({ cart, setCart, onClose, onOrder }) {
+  const { isDark } = useTheme();
   const [showAuth, setShowAuth] = useState(false);
   const total = cart.reduce((s, i) => s + Number(i.price) * i.qty, 0);
   const totalItems = cart.reduce((a, i) => a + i.qty, 0);
 
-  const updateQty = (id, delta) => {
-    setCart((prev) =>
-      prev.map((i) => i.id === id ? { ...i, qty: i.qty + delta } : i).filter((i) => i.qty > 0)
-    );
-  };
+  const updateQty = (id, delta) =>
+    setCart((prev) => prev.map((i) => i.id === id ? { ...i, qty: i.qty + delta } : i).filter((i) => i.qty > 0));
 
-  const clearCart = () => {
-    if (confirm("Remove all items from your cart?")) setCart([]);
-  };
+  const clearCart = () => { if (confirm("Remove all items?")) setCart([]); };
 
   const handleOrder = () => {
-    const token = localStorage.getItem("token");
-    if (!token) { setShowAuth(true); return; }
+    if (!localStorage.getItem("token")) { setShowAuth(true); return; }
     onOrder();
   };
+
+  const c = isDark ? dc : lc;
 
   return (
     <>
       <div style={s.overlay} onClick={onClose}>
-        <div style={s.drawer} onClick={(e) => e.stopPropagation()}>
+        <div style={{ ...s.drawer, background: c.bg, boxShadow: c.shadow }} onClick={(e) => e.stopPropagation()}>
 
-          {/* Header */}
-          <div style={s.header}>
+          <div style={{ ...s.header, borderBottom: `1px solid ${c.border}` }}>
             <div>
-              <h2 style={s.title}>Your Cart</h2>
-              <p style={s.count}>
-                {cart.length === 0 ? "No items yet" : `${totalItems} item${totalItems !== 1 ? "s" : ""}`}
+              <h2 style={{ ...s.title, color: c.text }}>Your Cart</h2>
+              <p style={{ ...s.count, color: c.muted }}>
+                {cart.length === 0 ? "Nothing added yet" : `${totalItems} item${totalItems !== 1 ? "s" : ""}`}
               </p>
             </div>
-            <div style={s.headerRight}>
+            <div style={{ display: "flex", alignItems: "center", gap: "0.6rem" }}>
               {cart.length > 0 && (
-                <button style={s.clearBtn} onClick={clearCart}>Clear</button>
+                <button style={{ ...s.clearBtn, background: c.clearBg, color: "#d4235e" }} onClick={clearCart}>Clear</button>
               )}
-              <button style={s.closeBtn} onClick={onClose}>✕</button>
+              <button style={{ ...s.closeBtn, background: c.closeBg, color: c.muted }} onClick={onClose}>✕</button>
             </div>
           </div>
 
-          {/* Body */}
           {cart.length === 0 ? (
             <div style={s.empty}>
-              <div style={s.emptyIllustration}>
-                <span style={s.emptyIcon}>🛒</span>
+              <div style={{ ...s.emptyIllust, background: isDark ? "rgba(212,35,94,0.08)" : "linear-gradient(135deg, #fff0f5, #ffdae8)" }}>
+                <span style={{ fontSize: "2.4rem" }}>🛒</span>
               </div>
-              <p style={s.emptyTitle}>Your cart is empty</p>
-              <p style={s.emptySub}>Browse our menu and add some delicious treats!</p>
+              <p style={{ ...s.emptyTitle, color: c.text }}>Your cart is empty</p>
+              <p style={{ ...s.emptySub, color: c.muted }}>Browse our menu and add some treats!</p>
               <button style={s.browseBtn} onClick={onClose}>Browse Menu</button>
             </div>
           ) : (
             <div style={s.body}>
               <div style={s.items}>
                 {cart.map((item) => (
-                  <div key={item.id} style={s.item}>
-                    <div style={s.itemEmojiWrap}>
-                      <span style={s.itemEmoji}>{item.emoji}</span>
+                  <div key={item.id} style={{ ...s.item, borderBottom: `1px solid ${c.border}` }}>
+                    <div style={{ ...s.itemEmojiWrap, background: isDark ? "rgba(212,35,94,0.08)" : "linear-gradient(135deg, #fff0f5, #ffdae8)" }}>
+                      {item.image_data
+                        ? <img src={item.image_data} style={{ width: "100%", height: "100%", objectFit: "cover", borderRadius: "12px" }} alt={item.name} />
+                        : <span style={{ fontSize: "1.6rem" }}>{item.emoji}</span>
+                      }
                     </div>
                     <div style={s.itemInfo}>
-                      <p style={s.itemName}>{item.name}</p>
-                      <p style={s.itemUnit}>₾{Number(item.price).toFixed(2)} each</p>
+                      <p style={{ ...s.itemName, color: c.text }}>{item.name}</p>
+                      <p style={{ ...s.itemUnit, color: c.muted }}>₾{Number(item.price).toFixed(2)} each</p>
                     </div>
                     <div style={s.itemRight}>
-                      <div style={s.qtyRow}>
-                        <button style={s.qtyBtn} onClick={() => updateQty(item.id, -1)}>−</button>
-                        <span style={s.qty}>{item.qty}</span>
-                        <button style={s.qtyBtn} onClick={() => updateQty(item.id, 1)}>+</button>
+                      <div style={{ ...s.qtyRow, background: isDark ? "rgba(255,255,255,0.06)" : "#f8f0f5" }}>
+                        <button style={{ ...s.qtyBtn, color: "#d4235e" }} onClick={() => updateQty(item.id, -1)}>−</button>
+                        <span style={{ ...s.qty, color: c.text }}>{item.qty}</span>
+                        <button style={{ ...s.qtyBtn, color: "#d4235e" }} onClick={() => updateQty(item.id, 1)}>+</button>
                       </div>
                       <span style={s.itemTotal}>₾{(Number(item.price) * item.qty).toFixed(2)}</span>
                     </div>
@@ -77,21 +76,21 @@ export default function Cart({ cart, setCart, onClose, onOrder }) {
                 ))}
               </div>
 
-              <div style={s.footer}>
-                <div style={s.deliveryNote}>
+              <div style={{ ...s.footer, borderTop: `1px solid ${c.border}`, background: isDark ? "rgba(255,255,255,0.02)" : "#fdf8fb" }}>
+                <div style={{ ...s.deliveryNote, background: isDark ? "rgba(34,197,94,0.08)" : "#e8f5e9", color: isDark ? "#4ade80" : "#2e7d32" }}>
                   🚚 Free delivery for orders over ₾30
                 </div>
                 <div style={s.totalRow}>
                   <div>
-                    <span style={s.totalLabel}>Subtotal</span>
-                    <p style={s.totalSmall}>{totalItems} item{totalItems !== 1 ? "s" : ""}</p>
+                    <span style={{ ...s.totalLabel, color: c.text }}>Subtotal</span>
+                    <p style={{ ...s.totalSmall, color: c.muted }}>{totalItems} item{totalItems !== 1 ? "s" : ""}</p>
                   </div>
-                  <span style={s.totalAmount}>₾{total.toFixed(2)}</span>
+                  <span style={{ ...s.totalAmount, color: c.text }}>₾{total.toFixed(2)}</span>
                 </div>
                 <button style={s.orderBtn} onClick={handleOrder}>
                   Place Order · ₾{total.toFixed(2)}
                 </button>
-                <p style={s.orderNote}>We'll call you to confirm your order</p>
+                <p style={{ ...s.orderNote, color: c.muted }}>We'll send a verification code to your phone</p>
               </div>
             </div>
           )}
@@ -99,53 +98,46 @@ export default function Cart({ cart, setCart, onClose, onOrder }) {
       </div>
 
       {showAuth && (
-        <AuthModal
-          onClose={() => setShowAuth(false)}
-          onSuccess={() => { setShowAuth(false); onOrder(); }}
-        />
+        <AuthModal onClose={() => setShowAuth(false)} onSuccess={() => { setShowAuth(false); onOrder(); }} />
       )}
     </>
   );
 }
 
+const lc = { bg: "white", shadow: "-16px 0 60px rgba(0,0,0,0.18)", text: "#1c0f18", muted: "#8b6070", border: "#f2eaee", clearBg: "#fdf0f5", closeBg: "#f5eef2" };
+const dc = { bg: "#1b1320", shadow: "-16px 0 60px rgba(0,0,0,0.5)", text: "#f0ecf4", muted: "#9878a8", border: "rgba(255,255,255,0.07)", clearBg: "rgba(212,35,94,0.1)", closeBg: "rgba(255,255,255,0.07)" };
+
 const s = {
-  overlay: { position: "fixed", inset: 0, background: "rgba(28,15,24,0.5)", zIndex: 100, backdropFilter: "blur(4px)" },
-  drawer: { position: "fixed", right: 0, top: 0, bottom: 0, width: "min(430px, 100vw)", background: "white", display: "flex", flexDirection: "column", boxShadow: "-16px 0 60px rgba(0,0,0,0.2)" },
-
-  header: { display: "flex", justifyContent: "space-between", alignItems: "flex-start", padding: "1.8rem 1.8rem 1.3rem", borderBottom: "1px solid #f2eaee" },
-  title: { fontFamily: "'Playfair Display', serif", color: "#1c0f18", fontSize: "1.45rem", fontWeight: "700" },
-  count: { color: "#8b6070", fontSize: "0.78rem", marginTop: "0.2rem" },
-  headerRight: { display: "flex", alignItems: "center", gap: "0.6rem" },
-  clearBtn: { background: "#fdf0f5", border: "none", color: "#d4235e", fontSize: "0.78rem", fontWeight: "600", padding: "0.3rem 0.8rem", borderRadius: "8px", cursor: "pointer" },
-  closeBtn: { background: "#f5eef2", border: "none", width: "30px", height: "30px", borderRadius: "50%", cursor: "pointer", color: "#8b6070", fontSize: "0.85rem", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 },
-
+  overlay: { position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", zIndex: 100, backdropFilter: "blur(4px)" },
+  drawer: { position: "fixed", right: 0, top: 0, bottom: 0, width: "min(430px, 100vw)", display: "flex", flexDirection: "column" },
+  header: { display: "flex", justifyContent: "space-between", alignItems: "flex-start", padding: "1.8rem 1.8rem 1.3rem" },
+  title: { fontFamily: "'Playfair Display', serif", fontSize: "1.45rem", fontWeight: "700" },
+  count: { fontSize: "0.78rem", marginTop: "0.2rem" },
+  clearBtn: { border: "none", fontSize: "0.78rem", fontWeight: "600", padding: "0.3rem 0.8rem", borderRadius: "8px", cursor: "pointer" },
+  closeBtn: { border: "none", width: "30px", height: "30px", borderRadius: "50%", cursor: "pointer", fontSize: "0.85rem", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 },
   empty: { flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "3rem 2rem", textAlign: "center" },
-  emptyIllustration: { width: "90px", height: "90px", background: "linear-gradient(135deg, #fff0f5, #ffdae8)", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", marginBottom: "1.2rem" },
-  emptyIcon: { fontSize: "2.5rem" },
-  emptyTitle: { color: "#1c0f18", fontWeight: "700", fontSize: "1rem", fontFamily: "'Playfair Display', serif", marginBottom: "0.4rem" },
-  emptySub: { color: "#8b6070", fontSize: "0.85rem", lineHeight: 1.5, marginBottom: "1.5rem" },
+  emptyIllust: { width: "90px", height: "90px", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", marginBottom: "1.2rem" },
+  emptyTitle: { fontWeight: "700", fontSize: "1rem", fontFamily: "'Playfair Display', serif", marginBottom: "0.4rem" },
+  emptySub: { fontSize: "0.85rem", lineHeight: 1.5, marginBottom: "1.5rem" },
   browseBtn: { background: "linear-gradient(135deg, #d4235e, #a01848)", color: "white", border: "none", padding: "0.75rem 1.8rem", borderRadius: "50px", cursor: "pointer", fontSize: "0.88rem", fontWeight: "600" },
-
   body: { flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" },
   items: { flex: 1, overflowY: "auto", padding: "0.5rem 1.8rem" },
-  item: { display: "flex", alignItems: "center", gap: "1rem", padding: "1rem 0", borderBottom: "1px solid #faf3f7" },
-  itemEmojiWrap: { width: "50px", height: "50px", background: "linear-gradient(135deg, #fff0f5, #ffdae8)", borderRadius: "12px", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 },
-  itemEmoji: { fontSize: "1.6rem" },
+  item: { display: "flex", alignItems: "center", gap: "1rem", padding: "1rem 0" },
+  itemEmojiWrap: { width: "50px", height: "50px", borderRadius: "12px", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, overflow: "hidden" },
   itemInfo: { flex: 1, minWidth: 0 },
-  itemName: { fontWeight: "600", color: "#1c0f18", fontSize: "0.88rem", margin: "0 0 0.2rem", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" },
-  itemUnit: { color: "#8b6070", fontSize: "0.74rem", margin: 0 },
+  itemName: { fontWeight: "600", fontSize: "0.88rem", margin: "0 0 0.2rem", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" },
+  itemUnit: { fontSize: "0.74rem", margin: 0 },
   itemRight: { display: "flex", flexDirection: "column", alignItems: "flex-end", gap: "0.4rem", flexShrink: 0 },
-  qtyRow: { display: "flex", alignItems: "center", gap: "0.4rem", background: "#f8f0f5", borderRadius: "50px", padding: "3px 8px" },
-  qtyBtn: { background: "none", border: "none", width: "22px", height: "22px", borderRadius: "50%", cursor: "pointer", fontSize: "1rem", fontWeight: "700", color: "#d4235e", display: "flex", alignItems: "center", justifyContent: "center", lineHeight: 1 },
-  qty: { minWidth: "18px", textAlign: "center", fontWeight: "700", fontSize: "0.82rem", color: "#1c0f18" },
+  qtyRow: { display: "flex", alignItems: "center", gap: "0.4rem", borderRadius: "50px", padding: "3px 8px" },
+  qtyBtn: { background: "none", border: "none", width: "22px", height: "22px", borderRadius: "50%", cursor: "pointer", fontSize: "1rem", fontWeight: "700", display: "flex", alignItems: "center", justifyContent: "center", lineHeight: 1 },
+  qty: { minWidth: "18px", textAlign: "center", fontWeight: "700", fontSize: "0.82rem" },
   itemTotal: { color: "#d4235e", fontWeight: "700", fontSize: "0.88rem" },
-
-  footer: { padding: "1.2rem 1.8rem 1.8rem", borderTop: "1px solid #f2eaee", background: "#fdf8fb" },
-  deliveryNote: { background: "#e8f5e9", color: "#2e7d32", fontSize: "0.76rem", fontWeight: "500", padding: "0.5rem 1rem", borderRadius: "8px", marginBottom: "1rem", textAlign: "center" },
+  footer: { padding: "1.2rem 1.8rem 1.8rem" },
+  deliveryNote: { fontSize: "0.76rem", fontWeight: "500", padding: "0.5rem 1rem", borderRadius: "8px", marginBottom: "1rem", textAlign: "center" },
   totalRow: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1.2rem" },
-  totalLabel: { color: "#1c0f18", fontWeight: "600", fontSize: "0.9rem" },
-  totalSmall: { color: "#8b6070", fontSize: "0.74rem", marginTop: "0.1rem" },
-  totalAmount: { fontFamily: "'Playfair Display', serif", color: "#1c0f18", fontWeight: "700", fontSize: "1.7rem" },
-  orderBtn: { width: "100%", background: "linear-gradient(135deg, #d4235e, #a01848)", color: "white", border: "none", padding: "1rem", borderRadius: "14px", fontSize: "0.95rem", fontWeight: "700", cursor: "pointer", letterSpacing: "0.01em", marginBottom: "0.6rem" },
-  orderNote: { textAlign: "center", color: "#8b6070", fontSize: "0.74rem" },
+  totalLabel: { fontWeight: "600", fontSize: "0.9rem" },
+  totalSmall: { fontSize: "0.74rem", marginTop: "0.1rem" },
+  totalAmount: { fontFamily: "'Playfair Display', serif", fontWeight: "700", fontSize: "1.7rem" },
+  orderBtn: { width: "100%", background: "linear-gradient(135deg, #d4235e, #a01848)", color: "white", border: "none", padding: "1rem", borderRadius: "14px", fontSize: "0.95rem", fontWeight: "700", cursor: "pointer", marginBottom: "0.6rem" },
+  orderNote: { textAlign: "center", fontSize: "0.74rem" },
 };
