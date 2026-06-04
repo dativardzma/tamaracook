@@ -1,4 +1,4 @@
-* { margin: 0; padding: 0; box-sizing: border-box; }
-body { font-family: 'Poppins', sans-serif; background: #fff5f9; color: #333; }
-button { font-family: 'Poppins', sans-serif; }
-input { font-family: 'Poppins', sans-serif; }
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: 'Inter', sans-serif; background: #fdf6f2; color: #1c0f18; -webkit-font-smoothing: antialiased; }
+button { font-family: 'Inter', sans-serif; }
+input { font-family: 'Inter', sans-serif; }

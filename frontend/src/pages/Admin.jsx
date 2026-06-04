@@ -176,7 +176,7 @@ export default function Admin() {
 }
 
 const s = {
-  layout: { display: "flex", minHeight: "100vh", fontFamily: "'Poppins', sans-serif" },
+  layout: { display: "flex", minHeight: "100vh", fontFamily: "'Inter', sans-serif" },
   sidebar: { width: "240px", background: "linear-gradient(180deg, #1a1a2e 0%, #16213e 100%)", display: "flex", flexDirection: "column", position: "fixed", top: 0, left: 0, bottom: 0 },
   sidebarTop: { padding: "2rem 1.5rem", borderBottom: "1px solid rgba(255,255,255,0.1)", textAlign: "center" },
   sidebarLogo: { fontSize: "2.5rem", marginBottom: "0.5rem" },
@@ -191,7 +191,7 @@ const s = {
   logoutBtn: { display: "flex", alignItems: "center", gap: "0.5rem", padding: "0.7rem 1rem", background: "rgba(233,30,140,0.2)", border: "none", color: "#e91e8c", borderRadius: "10px", cursor: "pointer", fontSize: "0.85rem", fontWeight: "500" },
   main: { flex: 1, marginLeft: "240px", background: "#f8f9fa", minHeight: "100vh" },
   topbar: { background: "white", padding: "1.5rem 2rem", borderBottom: "1px solid #f0f0f0" },
-  pageTitle: { fontSize: "1.5rem", fontWeight: "700", color: "#1a1a2e" },
+  pageTitle: { fontFamily: "'Playfair Display', serif", fontSize: "1.5rem", fontWeight: "700", color: "#1c0f18" },
   pageDesc: { color: "#888", fontSize: "0.85rem", marginTop: "0.2rem" },
   content: { padding: "2rem" },
   card: { background: "white", borderRadius: "20px", padding: "2rem", boxShadow: "0 4px 20px rgba(0,0,0,0.05)" },
