@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Numeric, Boolean, DateTime, Text
+from sqlalchemy import Column, Integer, String, Numeric, Boolean, DateTime, Text, ForeignKey
 from sqlalchemy.sql import func
 from database import Base
 
@@ -9,6 +9,7 @@ class User(Base):
     email = Column(String, unique=True, nullable=False)
     password = Column(String, nullable=False)
     is_admin = Column(Boolean, default=False)
+    is_delivery = Column(Boolean, default=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
 
@@ -24,8 +25,12 @@ class Product(Base):
 class Order(Base):
     __tablename__ = "orders"
     id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=True)
     customer_name = Column(String, nullable=False)
     phone = Column(String, nullable=False)
+    address = Column(String, nullable=True)
+    order_type = Column(String, default="delivery")
     items = Column(Text, nullable=False)
     total = Column(Numeric, nullable=False)
+    status = Column(String, default="pending")
     created_at = Column(DateTime(timezone=True), server_default=func.now())

@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import Cart from "../components/Cart";
 import OrderForm from "../components/OrderForm";
 import AuthModal from "../components/AuthModal";
+import ProfileModal from "../components/ProfileModal";
 
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "";
 
@@ -14,7 +15,10 @@ export default function Shop() {
   const [orderOpen, setOrderOpen] = useState(false);
   const [orderSuccess, setOrderSuccess] = useState(false);
   const [authOpen, setAuthOpen] = useState(false);
+  const [profileOpen, setProfileOpen] = useState(false);
   const [userEmail, setUserEmail] = useState(() => localStorage.getItem("email"));
+  const isAdmin = localStorage.getItem("is_admin") === "true";
+  const isDelivery = localStorage.getItem("is_delivery") === "true";
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -46,16 +50,18 @@ export default function Shop() {
             </div>
           </div>
           <div style={s.headerActions}>
+            {isAdmin && (
+              <button style={s.staffBtn} onClick={() => navigate("/admin")}>⚙️ Admin</button>
+            )}
+            {isDelivery && !isAdmin && (
+              <button style={s.staffBtn} onClick={() => navigate("/delivery")}>🚚 Deliveries</button>
+            )}
             {userEmail ? (
-              <div style={s.userPill}>
+              <button style={s.userPill} onClick={() => setProfileOpen(true)}>
                 <span style={s.userDot} />
                 <span style={s.userName}>{userEmail.split("@")[0]}</span>
-                <button style={s.signOutLink} onClick={() => {
-                  localStorage.removeItem("token");
-                  localStorage.removeItem("email");
-                  setUserEmail(null);
-                }}>sign out</button>
-              </div>
+                <span style={s.userChevron}>›</span>
+              </button>
             ) : (
               <button style={s.authBtn} onClick={() => setAuthOpen(true)}>Sign In</button>
             )}
@@ -115,6 +121,19 @@ export default function Shop() {
       {cartOpen && <Cart cart={cart} setCart={setCart} onClose={() => setCartOpen(false)} onOrder={() => { setCartOpen(false); setOrderOpen(true); }} />}
       {orderOpen && <OrderForm cart={cart} backendUrl={BACKEND_URL} onClose={() => setOrderOpen(false)} onSuccess={() => { setCart([]); setOrderOpen(false); setOrderSuccess(true); setTimeout(() => setOrderSuccess(false), 4000); }} />}
       {authOpen && <AuthModal onClose={() => setAuthOpen(false)} onSuccess={() => { setUserEmail(localStorage.getItem("email")); setAuthOpen(false); }} />}
+
+      {profileOpen && userEmail && (
+        <ProfileModal
+          email={userEmail}
+          onClose={() => setProfileOpen(false)}
+          onSignOut={() => {
+            localStorage.removeItem("token");
+            localStorage.removeItem("email");
+            setUserEmail(null);
+            setProfileOpen(false);
+          }}
+        />
+      )}
       {orderSuccess && <div style={s.toast}>✅ Order placed! We'll call you soon.</div>}
     </div>
   );
@@ -131,10 +150,11 @@ const s = {
   brandSub: { color: "rgba(255,255,255,0.3)", fontSize: "0.6rem", letterSpacing: "0.18em", textTransform: "uppercase", marginTop: "3px" },
   headerActions: { display: "flex", alignItems: "center", gap: "0.8rem" },
 
-  userPill: { display: "flex", alignItems: "center", gap: "0.5rem", background: "rgba(255,255,255,0.07)", border: "1px solid rgba(255,255,255,0.12)", borderRadius: "50px", padding: "0.35rem 0.9rem" },
+  userPill: { display: "flex", alignItems: "center", gap: "0.5rem", background: "rgba(255,255,255,0.07)", border: "1px solid rgba(255,255,255,0.12)", borderRadius: "50px", padding: "0.35rem 0.9rem", cursor: "pointer" },
   userDot: { width: "7px", height: "7px", borderRadius: "50%", background: "#4caf50", flexShrink: 0 },
   userName: { color: "rgba(255,255,255,0.8)", fontSize: "0.82rem", fontWeight: "500" },
-  signOutLink: { background: "none", border: "none", color: "rgba(255,255,255,0.3)", fontSize: "0.73rem", cursor: "pointer", padding: 0 },
+  userChevron: { color: "rgba(255,255,255,0.35)", fontSize: "1rem", lineHeight: 1 },
+  staffBtn: { background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.25)", color: "white", padding: "0.45rem 1.1rem", borderRadius: "50px", cursor: "pointer", fontSize: "0.83rem", fontWeight: "600" },
   authBtn: { background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.18)", color: "white", padding: "0.45rem 1.1rem", borderRadius: "50px", cursor: "pointer", fontSize: "0.83rem", fontWeight: "500" },
   cartBtn: { background: "#d4235e", border: "none", color: "white", padding: "0.5rem 1.2rem", borderRadius: "50px", cursor: "pointer", fontSize: "0.85rem", fontWeight: "600", position: "relative", display: "flex", alignItems: "center", gap: "0.4rem" },
   badge: { background: "white", color: "#d4235e", borderRadius: "50%", padding: "1px 6px", fontSize: "0.68rem", fontWeight: "800", minWidth: "18px", textAlign: "center" },

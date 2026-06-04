@@ -23,7 +23,11 @@ export default function Login() {
       if (!res.ok) { setError(data.detail || "Invalid email or password"); setLoading(false); return; }
       localStorage.setItem("token", data.token);
       localStorage.setItem("email", data.email);
-      navigate("/admin");
+      localStorage.setItem("is_admin", data.is_admin ? "true" : "false");
+      localStorage.setItem("is_delivery", data.is_delivery ? "true" : "false");
+      if (data.is_admin) navigate("/admin");
+      else if (data.is_delivery) navigate("/delivery");
+      else navigate("/");
     } catch {
       setError("Could not connect to server.");
     }
@@ -36,12 +40,12 @@ export default function Login() {
         <div style={s.logoWrap}>
           <span style={s.logo}>🍰</span>
         </div>
-        <h1 style={s.title}>Admin Portal</h1>
+        <h1 style={s.title}>Staff Portal</h1>
         <p style={s.sub}>საკონდიტრო</p>
 
         <form onSubmit={handle}>
           <label style={s.label}>Email</label>
-          <input style={s.input} type="email" placeholder="admin@example.com"
+          <input style={s.input} type="email" placeholder="staff@example.com"
             value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} required />
           <label style={s.label}>Password</label>
           <input style={s.input} type="password" placeholder="••••••••"
