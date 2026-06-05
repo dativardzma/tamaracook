@@ -15,6 +15,7 @@ export default function OrderForm({ cart, backendUrl, onClose, onSuccess }) {
   const [error, setError] = useState("");
   const [otpError, setOtpError] = useState("");
   const [resending, setResending] = useState(false);
+  const [devCode, setDevCode] = useState(null);
   const digitRefs = [useRef(), useRef(), useRef(), useRef()];
 
   const total = cart.reduce((s, i) => s + Number(i.price) * i.qty, 0);
@@ -55,6 +56,8 @@ export default function OrderForm({ cart, backendUrl, onClose, onSuccess }) {
         body: JSON.stringify({ phone: form.phone }),
       });
       if (res.ok) {
+        const json = await res.json();
+        if (json.dev_code) setDevCode(json.dev_code);
         setStep(2);
         setCodeDigits(["", "", "", ""]);
         setTimeout(() => digitRefs[0].current?.focus(), 100);
@@ -71,6 +74,7 @@ export default function OrderForm({ cart, backendUrl, onClose, onSuccess }) {
   const resendOtp = async () => {
     setResending(true);
     setOtpError("");
+    setDevCode(null);
     await sendOtp();
     setResending(false);
   };
@@ -235,6 +239,15 @@ export default function OrderForm({ cart, backendUrl, onClose, onSuccess }) {
                 <strong style={{ color: c.text }}>{form.phone}</strong>
               </p>
             </div>
+
+            {/* Dev mode banner — only shown when Twilio is not configured */}
+            {devCode && (
+              <div style={{ background: "#fff8e1", border: "1px solid #ffe082", borderRadius: "12px", padding: "0.8rem 1rem", marginBottom: "1rem", textAlign: "center" }}>
+                <p style={{ color: "#5d4037", fontSize: "0.74rem", fontWeight: "600", marginBottom: "0.3rem" }}>⚙️ DEV MODE — SMS not configured</p>
+                <p style={{ fontFamily: "monospace", fontSize: "1.8rem", fontWeight: "900", color: "#1c0f18", letterSpacing: "0.3em" }}>{devCode}</p>
+                <p style={{ color: "#8d6e63", fontSize: "0.7rem", marginTop: "0.2rem" }}>Set up Twilio to send real SMS codes</p>
+              </div>
+            )}
 
             {/* Code input boxes */}
             <div style={s.codeWrap} onPaste={handlePaste}>

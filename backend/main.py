@@ -140,7 +140,11 @@ def otp_send(data: SendOtp, db: Session = Depends(get_db)):
     db.add(OtpCode(phone=phone, code=code, expires_at=expires_at))
     db.commit()
 
+    sms_configured = bool(os.getenv("TWILIO_ACCOUNT_SID"))
     send_sms(phone, f"Your საკონდიტრო order code: {code}. Valid for 5 minutes.")
+    # In dev mode (no Twilio), return the code so you can test the flow
+    if not sms_configured:
+        return {"message": "Code sent (dev mode — SMS not configured)", "dev_code": code}
     return {"message": "Code sent"}
 
 @app.post("/api/otp/verify")
