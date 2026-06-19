@@ -57,19 +57,18 @@ export default function Shop() {
   const scrollToMenu = () => menuRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
   const scrollTo = (id) => document.getElementById(id)?.scrollIntoView({ behavior: "smooth" });
 
-  const V = isDark ? dark : light;
-
   return (
-    <div style={{ ...s.page, background: "var(--bg)" }}>
+    <div style={{ minHeight: "100vh", fontFamily: "'Inter', sans-serif", background: "var(--bg)" }}>
 
       {/* ── Header ── */}
       <header style={{
-        ...s.header,
+        position: "sticky", top: 0, zIndex: 50,
+        transition: "background 0.35s, box-shadow 0.35s, backdrop-filter 0.35s",
         background: scrolled
-          ? isDark ? "rgba(10,6,12,0.92)" : "rgba(28,15,24,0.95)"
-          : "rgba(28,15,24,1)",
-        backdropFilter: scrolled ? "blur(16px)" : "none",
-        boxShadow: scrolled ? "0 4px 40px rgba(0,0,0,0.35)" : "none",
+          ? isDark ? "rgba(8,4,10,0.94)" : "rgba(22,9,20,0.97)"
+          : "#1c0f18",
+        backdropFilter: scrolled ? "blur(20px)" : "none",
+        boxShadow: scrolled ? "0 2px 32px rgba(0,0,0,0.4)" : "none",
       }}>
         <div style={s.headerInner}>
           <button style={s.brandBtn} onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}>
