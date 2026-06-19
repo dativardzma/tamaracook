@@ -2,6 +2,9 @@ import os
 import base64
 import random
 import string
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
 from datetime import datetime, timezone, timedelta
 from fastapi import FastAPI, Depends, HTTPException, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
@@ -87,10 +90,10 @@ class ProductUpdate(BaseModel):
     available: Optional[bool] = None
 
 class SendOtp(BaseModel):
-    phone: str
+    email: str
 
 class VerifyOtp(BaseModel):
-    phone: str
+    email: str
     code: str
 
 
@@ -109,50 +112,58 @@ def product_dict(p: Product) -> dict:
         "image_data": p.image_data, "available": p.available,
     }
 
-def send_sms(to: str, body: str):
-    """Send SMS via Twilio if TWILIO_ACCOUNT_SID env var is set. Silent no-op otherwise."""
-    sid = os.getenv("TWILIO_ACCOUNT_SID")
-    if not sid:
-        return
+def send_email_otp(to_email: str, code: str) -> bool:
+    """Send OTP code via Gmail SMTP. Returns True if sent, False otherwise."""
+    gmail = os.getenv("GMAIL_ADDRESS")
+    pwd = os.getenv("GMAIL_APP_PASSWORD")
+    if not gmail or not pwd:
+        return False
     try:
-        from twilio.rest import Client
-        Client(sid, os.getenv("TWILIO_AUTH_TOKEN")).messages.create(
-            body=body,
-            from_=os.getenv("TWILIO_FROM_NUMBER"),
-            to=to,
-        )
+        msg = MIMEMultipart("alternative")
+        msg["Subject"] = f"Your verification code: {code}"
+        msg["From"] = f"საკონდიტრო <{gmail}>"
+        msg["To"] = to_email
+        msg.attach(MIMEText(f"Your verification code is: {code}\n\nValid for 5 minutes.", "plain"))
+        msg.attach(MIMEText(f"""
+        <div style="font-family:sans-serif;max-width:420px;margin:0 auto;padding:24px">
+          <h2 style="color:#d4235e;margin-bottom:4px">საკონდიტრო</h2>
+          <p style="color:#8b6070;font-size:14px">Your order verification code</p>
+          <div style="font-size:36px;font-weight:900;letter-spacing:0.3em;color:#1c0f18;
+                      background:#fdf6f2;padding:20px;border-radius:14px;text-align:center;
+                      border:1px solid #f0e4ea;margin:20px 0">{code}</div>
+          <p style="color:#8b6070;font-size:13px">Valid for 5 minutes. Do not share this code.</p>
+        </div>""", "html"))
+        with smtplib.SMTP_SSL("smtp.gmail.com", 465) as server:
+            server.login(gmail, pwd)
+            server.sendmail(gmail, to_email, msg.as_string())
+        return True
     except Exception:
-        pass
+        return False
 
 
 # ── OTP ────────────────────────────────────────────────────────────────────────
 
 @app.post("/api/otp/send")
 def otp_send(data: SendOtp, db: Session = Depends(get_db)):
-    phone = data.phone.strip()
-    if len(phone) < 6:
-        raise HTTPException(status_code=400, detail="Invalid phone number")
-
-    # Remove old codes for this phone
-    db.query(OtpCode).filter(OtpCode.phone == phone).delete()
-    code = ''.join(random.choices(string.digits, k=4))
+    email = data.email.strip().lower()
+    if "@" not in email:
+        raise HTTPException(status_code=400, detail="Invalid email address")
+    db.query(OtpCode).filter(OtpCode.phone == email).delete()
+    code = ''.join(random.choices(string.digits, k=6))
     expires_at = datetime.now(timezone.utc) + timedelta(minutes=5)
-    db.add(OtpCode(phone=phone, code=code, expires_at=expires_at))
+    db.add(OtpCode(phone=email, code=code, expires_at=expires_at))
     db.commit()
-
-    sms_configured = bool(os.getenv("TWILIO_ACCOUNT_SID"))
-    send_sms(phone, f"Your საკონდიტრო order code: {code}. Valid for 5 minutes.")
-    # In dev mode (no Twilio), return the code so you can test the flow
-    if not sms_configured:
-        return {"message": "Code sent (dev mode — SMS not configured)", "dev_code": code}
+    sent = send_email_otp(email, code)
+    if not sent:
+        return {"message": "Code generated (email not configured)", "dev_code": code}
     return {"message": "Code sent"}
 
 @app.post("/api/otp/verify")
 def otp_verify(data: VerifyOtp, db: Session = Depends(get_db)):
-    phone = data.phone.strip()
+    email = data.email.strip().lower()
     code = data.code.strip()
     otp = db.query(OtpCode).filter(
-        OtpCode.phone == phone,
+        OtpCode.phone == email,
         OtpCode.code == code,
         OtpCode.used == False,
     ).first()

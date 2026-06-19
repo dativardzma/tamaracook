@@ -247,7 +247,7 @@ export default function Shop() {
           <p style={s.ctaSub}>Browse our menu and place your order online, or call us for custom requests</p>
           <div style={s.ctaBtns}>
             <button style={s.ctaBtn} onClick={scrollToMenu}>Order Online</button>
-            <a href="tel:+995555000000" style={s.ctaBtnOutline}>📞 Call Us Now</a>
+            <a href="tel:+995555942959" style={s.ctaBtnOutline}>📞 Call Us Now</a>
           </div>
         </div>
       </section>
@@ -273,7 +273,7 @@ export default function Shop() {
           </div>
           <div>
             <p style={s.footerHeading}>Contact</p>
-            <a href="tel:+995555000000" style={s.footerLink}>📞 +995 555 000 000</a>
+            <a href="tel:+995555942959" style={s.footerLink}>📞 +995 555 942 959</a>
             <p style={s.footerLine}>📍 Tbilisi, Georgia</p>
           </div>
           <div>
