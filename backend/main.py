@@ -143,44 +143,53 @@ def send_email_otp(to_email: str, code: str) -> bool:
         return False
 
 
-def send_status_email(to_email: str, customer_name: str, order_code: str, status: str, items: str = ""):
-    """Send order status notification to customer."""
-    if not to_email:
-        return
-    INFO = {
-        "confirmed":        ("Order Confirmed! ✅", "#22c55e", "Great news! Your order is confirmed and we're preparing it now."),
-        "out_for_delivery": ("On Its Way! 🚚",       "#6a1b9a", "Your order has been picked up and is heading to you!"),
-        "delivered":        ("Delivered! 💕",         "#2e7d32", "Your order has been delivered. Thank you for choosing us!"),
-        "ready":            ("Ready for Pickup! 🏠",  "#d4235e", "Your order is ready! Please come pick it up at our kitchen."),
-        "cancelled":        ("Order Cancelled",        "#616161", "We're sorry, your order has been cancelled. Please contact us for more info."),
-    }
-    if status not in INFO:
-        return
-    subject, color, message = INFO[status]
+def send_order_email(to_email: str, customer_name: str, order_code: str, email_type: str, items: str = "", total: str = ""):
+    """Send order email. All order emails share the same subject so Gmail threads them together."""
     gmail = os.getenv("GMAIL_ADDRESS")
     pwd = os.getenv("GMAIL_APP_PASSWORD")
-    if not gmail or not pwd:
+    if not gmail or not pwd or not to_email:
         return
+    CONTENT = {
+        "placed":           ("🍰", "#d4235e", "Order Received!",      f"Hi {customer_name}! Your order has been received and we'll start preparing it very soon.", "You'll get updates here as your order progresses. 🎉"),
+        "confirmed":        ("✅", "#16a34a", "Order Confirmed!",      f"Hi {customer_name}! Great news — your order is confirmed and our bakers are working on it right now.", "We'll let you know as soon as it's on the way."),
+        "out_for_delivery": ("🚚", "#7c3aed", "On Its Way!",           f"Hi {customer_name}! Your order has been picked up and is heading to you right now.", "Please be ready to receive it. Almost there!"),
+        "delivered":        ("💕", "#059669", "Delivered!",            f"Hi {customer_name}! Your order has been delivered. We hope you enjoy every single bite!", "Thank you so much for choosing საკონდიტრო. Come back soon! 🍰"),
+        "ready":            ("🏠", "#d4235e", "Ready for Pickup!",     f"Hi {customer_name}! Your order is freshly made and ready to be picked up.", "Please come collect it at our kitchen whenever you're ready."),
+        "cancelled":        ("😔", "#6b7280", "Order Cancelled",       f"Hi {customer_name}, we're sorry to let you know that your order has been cancelled.", "Please contact us if you have any questions or need help with a new order."),
+    }
+    if email_type not in CONTENT:
+        return
+    icon, color, headline, body, sub = CONTENT[email_type]
+    items_html = f'<p style="color:#6b4c58;font-size:14px;margin:6px 0 0;line-height:1.5">{items}</p>' if items else ""
+    total_html = f'<p style="color:#d4235e;font-weight:700;font-size:17px;margin:10px 0 0">Total: ₾{total}</p>' if total else ""
+    html = f"""
+    <div style="font-family:'Helvetica Neue',Arial,sans-serif;max-width:520px;margin:0 auto;background:#ffffff;border-radius:16px;overflow:hidden">
+      <div style="background:linear-gradient(135deg,#1c0f18 0%,#3a1430 100%);padding:28px 32px;text-align:center">
+        <div style="font-size:2.5rem;margin-bottom:8px">{icon}</div>
+        <h1 style="color:white;font-size:20px;margin:0 0 4px;letter-spacing:0.02em">საკონდიტრო</h1>
+        <p style="color:rgba(255,255,255,0.4);font-size:11px;margin:0;letter-spacing:0.12em;text-transform:uppercase">Georgian Confectionery</p>
+      </div>
+      <div style="padding:32px">
+        <h2 style="color:{color};font-size:24px;margin:0 0 14px;font-weight:700">{headline}</h2>
+        <p style="color:#1c0f18;font-size:15px;line-height:1.65;margin:0 0 6px">{body}</p>
+        <p style="color:#8b6070;font-size:13px;line-height:1.6;margin:0 0 24px">{sub}</p>
+        <div style="background:#fdf6f2;border:1px solid #f0e4ea;border-radius:14px;padding:20px">
+          <p style="color:#8b6070;font-size:11px;text-transform:uppercase;letter-spacing:0.12em;margin:0 0 6px;font-weight:600">Your Order Code</p>
+          <p style="font-family:monospace;font-size:30px;font-weight:900;color:#1c0f18;letter-spacing:0.22em;margin:0 0 10px">{order_code}</p>
+          {items_html}
+          {total_html}
+        </div>
+      </div>
+      <div style="background:#fdf6f2;padding:18px 32px;border-top:1px solid #f0eaf4;text-align:center">
+        <p style="color:#b09aaa;font-size:12px;margin:0">Made with ❤️ &nbsp;·&nbsp; საკონდიტრო</p>
+      </div>
+    </div>"""
     try:
         msg = MIMEMultipart("alternative")
-        msg["Subject"] = f"{subject} — Order {order_code}"
-        msg["From"] = f"საკონდიტრო <{gmail}>"
+        msg["Subject"] = f"Order {order_code} — საკონდიტრო"
+        msg["From"] = f"საკონდიტრო 🍰 <{gmail}>"
         msg["To"] = to_email
-        items_row = f'<p style="color:#6b4c58;font-size:13px;margin-top:8px">{items}</p>' if items else ""
-        msg.attach(MIMEText(f"""
-        <div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:24px">
-          <h2 style="color:#d4235e;margin-bottom:4px">საკონდიტრო</h2>
-          <hr style="border:none;border-top:1px solid #f0eaf4;margin:12px 0">
-          <h3 style="color:{color};margin-bottom:8px">{subject}</h3>
-          <p style="color:#1c0f18">Hi {customer_name},</p>
-          <p style="color:#6b4c58">{message}</p>
-          <div style="background:#fdf6f2;border-radius:12px;padding:16px;margin:20px 0">
-            <p style="color:#8b6070;font-size:13px;margin-bottom:4px">Order Code</p>
-            <p style="font-family:monospace;font-size:22px;font-weight:900;color:#1c0f18;letter-spacing:0.15em">{order_code}</p>
-            {items_row}
-          </div>
-          <p style="color:#8b6070;font-size:13px">საკონდიტრო · Made with ❤️</p>
-        </div>""", "html"))
+        msg.attach(MIMEText(html, "html"))
         with smtplib.SMTP_SSL("smtp.gmail.com", 465) as server:
             server.login(gmail, pwd)
             server.sendmail(gmail, to_email, msg.as_string())
@@ -268,6 +277,14 @@ def create_order(order: OrderCreate, db: Session = Depends(get_db), current_user
     code = generate_order_code()
     db_order = Order(**order.model_dump(), user_id=current_user.id if current_user else None, order_code=code)
     db.add(db_order); db.commit(); db.refresh(db_order)
+    send_order_email(
+        order.customer_email or "",
+        order.customer_name,
+        code,
+        "placed",
+        order.items,
+        str(order.total),
+    )
     return {"message": "Order placed!", "id": db_order.id, "order_code": code}
 
 @app.get("/api/orders/my")
@@ -378,12 +395,13 @@ def admin_update_order_status(order_id: int, data: OrderStatusUpdate, db: Sessio
         raise HTTPException(status_code=404, detail="Order not found")
     order.status = data.status
     db.commit()
-    send_status_email(
+    send_order_email(
         order.customer_email or "",
         order.customer_name,
         order.order_code or f"#{order.id}",
         data.status,
         order.items,
+        str(order.total),
     )
     return {"message": "Status updated"}
 

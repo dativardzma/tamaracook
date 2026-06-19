@@ -171,6 +171,16 @@ export default function Admin() {
     loadOrders();
   };
 
+  const nextAction = (order) => {
+    if (order.status === "pending") return { label: "✅ Confirm Order", next: "confirmed", color: "#16a34a" };
+    if (order.status === "confirmed") return order.order_type === "pickup"
+      ? { label: "🏠 Ready for Pickup", next: "ready", color: "#d4235e" }
+      : { label: "🚚 Picked Up", next: "out_for_delivery", color: "#7c3aed" };
+    if (order.status === "out_for_delivery") return { label: "📦 Mark Delivered", next: "delivered", color: "#059669" };
+    if (order.status === "ready") return { label: "✓ Customer Collected", next: "delivered", color: "#059669" };
+    return null;
+  };
+
   const deleteOrder = async (id) => {
     if (!confirm("Delete this order? This cannot be undone.")) return;
     await fetch(`${BACKEND_URL}/api/admin/orders/${id}`, { method: "DELETE", headers });
@@ -429,11 +439,11 @@ export default function Admin() {
                               {o.customer_email && <p style={{ color: "#8b6070", fontSize: "0.72rem", marginTop: "0.2rem" }}>✉️ {o.customer_email}</p>}
                             </div>
                             <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
-                              <select value={o.status || "pending"} style={s.statusSelect} onChange={(e) => updateOrderStatus(o.id, e.target.value)}>
-                                {Object.entries(STATUS_COLORS).map(([k, v]) => (
-                                  <option key={k} value={k}>{v.label}</option>
-                                ))}
-                              </select>
+                              {nextAction(o) && (
+                                <button style={{ ...s.actionBtn, background: nextAction(o).color }} onClick={() => updateOrderStatus(o.id, nextAction(o).next)}>
+                                  {nextAction(o).label}
+                                </button>
+                              )}
                               <button style={s.deleteOrderBtn} onClick={() => deleteOrder(o.id)} title="Delete order">🗑️</button>
                             </div>
                           </div>
@@ -795,6 +805,7 @@ const s = {
   orderTotal: { fontWeight: "700", color: "#1c0f18", fontSize: "0.95rem" },
   statusSelect: { fontSize: "0.8rem", padding: "0.32rem 0.7rem", borderRadius: "8px", border: "1.5px solid #f0eaf4", cursor: "pointer", outline: "none", background: "white" },
   deleteOrderBtn: { padding: "0.32rem 0.6rem", background: "#fce4ec", border: "none", borderRadius: "8px", cursor: "pointer", fontSize: "0.85rem" },
+  actionBtn: { color: "white", border: "none", padding: "0.42rem 1rem", borderRadius: "8px", cursor: "pointer", fontSize: "0.82rem", fontWeight: "600" },
 
   badge: { padding: "0.2rem 0.75rem", borderRadius: "50px", fontSize: "0.72rem", fontWeight: "600" },
 
