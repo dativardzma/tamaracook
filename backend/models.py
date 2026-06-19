@@ -36,6 +36,7 @@ class Order(Base):
     total = Column(Numeric, nullable=False)
     status = Column(String, default="pending")
     order_code = Column(String, nullable=True)
+    customer_email = Column(String, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
 

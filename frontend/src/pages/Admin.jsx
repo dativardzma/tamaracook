@@ -171,6 +171,13 @@ export default function Admin() {
     loadOrders();
   };
 
+  const deleteOrder = async (id) => {
+    if (!confirm("Delete this order? This cannot be undone.")) return;
+    await fetch(`${BACKEND_URL}/api/admin/orders/${id}`, { method: "DELETE", headers });
+    flash("Order deleted.");
+    loadOrders();
+  };
+
   const addDelivery = async (e) => {
     e.preventDefault();
     setLoading(true);
@@ -417,12 +424,18 @@ export default function Admin() {
                           </div>
                           <p style={s.orderItems}>{o.items}</p>
                           <div style={s.orderCardBottom}>
-                            <span style={s.orderTotal}>₾{Number(o.total).toFixed(2)}</span>
-                            <select value={o.status || "pending"} style={s.statusSelect} onChange={(e) => updateOrderStatus(o.id, e.target.value)}>
-                              {Object.entries(STATUS_COLORS).map(([k, v]) => (
-                                <option key={k} value={k}>{v.label}</option>
-                              ))}
-                            </select>
+                            <div>
+                              <span style={s.orderTotal}>₾{Number(o.total).toFixed(2)}</span>
+                              {o.customer_email && <p style={{ color: "#8b6070", fontSize: "0.72rem", marginTop: "0.2rem" }}>✉️ {o.customer_email}</p>}
+                            </div>
+                            <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                              <select value={o.status || "pending"} style={s.statusSelect} onChange={(e) => updateOrderStatus(o.id, e.target.value)}>
+                                {Object.entries(STATUS_COLORS).map(([k, v]) => (
+                                  <option key={k} value={k}>{v.label}</option>
+                                ))}
+                              </select>
+                              <button style={s.deleteOrderBtn} onClick={() => deleteOrder(o.id)} title="Delete order">🗑️</button>
+                            </div>
                           </div>
                         </div>
                       );
@@ -781,6 +794,7 @@ const s = {
   orderCardBottom: { display: "flex", justifyContent: "space-between", alignItems: "center" },
   orderTotal: { fontWeight: "700", color: "#1c0f18", fontSize: "0.95rem" },
   statusSelect: { fontSize: "0.8rem", padding: "0.32rem 0.7rem", borderRadius: "8px", border: "1.5px solid #f0eaf4", cursor: "pointer", outline: "none", background: "white" },
+  deleteOrderBtn: { padding: "0.32rem 0.6rem", background: "#fce4ec", border: "none", borderRadius: "8px", cursor: "pointer", fontSize: "0.85rem" },
 
   badge: { padding: "0.2rem 0.75rem", borderRadius: "50px", fontSize: "0.72rem", fontWeight: "600" },
 

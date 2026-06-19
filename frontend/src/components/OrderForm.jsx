@@ -112,6 +112,7 @@ export default function OrderForm({ cart, backendUrl, onClose, onSuccess }) {
           order_type: form.order_type,
           items: itemsSummary,
           total,
+          customer_email: form.email,
         }),
       });
       if (oRes.ok) {

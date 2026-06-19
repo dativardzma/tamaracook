@@ -26,6 +26,7 @@ with engine.connect() as _conn:
     _conn.execute(text("ALTER TABLE orders ADD COLUMN IF NOT EXISTS order_type VARCHAR DEFAULT 'delivery'"))
     _conn.execute(text("ALTER TABLE orders ADD COLUMN IF NOT EXISTS address VARCHAR"))
     _conn.execute(text("ALTER TABLE orders ADD COLUMN IF NOT EXISTS order_code VARCHAR"))
+    _conn.execute(text("ALTER TABLE orders ADD COLUMN IF NOT EXISTS customer_email VARCHAR"))
     _conn.execute(text("ALTER TABLE products ADD COLUMN IF NOT EXISTS description VARCHAR"))
     _conn.execute(text("ALTER TABLE products ADD COLUMN IF NOT EXISTS image_data TEXT"))
     _conn.execute(text("""
@@ -71,6 +72,7 @@ class OrderCreate(BaseModel):
     order_type: str = "delivery"
     items: str
     total: float
+    customer_email: Optional[str] = None
 
 class OrderStatusUpdate(BaseModel):
     status: str
@@ -139,6 +141,51 @@ def send_email_otp(to_email: str, code: str) -> bool:
         return True
     except Exception:
         return False
+
+
+def send_status_email(to_email: str, customer_name: str, order_code: str, status: str, items: str = ""):
+    """Send order status notification to customer."""
+    if not to_email:
+        return
+    INFO = {
+        "confirmed":        ("Order Confirmed! ✅", "#22c55e", "Great news! Your order is confirmed and we're preparing it now."),
+        "out_for_delivery": ("On Its Way! 🚚",       "#6a1b9a", "Your order has been picked up and is heading to you!"),
+        "delivered":        ("Delivered! 💕",         "#2e7d32", "Your order has been delivered. Thank you for choosing us!"),
+        "ready":            ("Ready for Pickup! 🏠",  "#d4235e", "Your order is ready! Please come pick it up at our kitchen."),
+        "cancelled":        ("Order Cancelled",        "#616161", "We're sorry, your order has been cancelled. Please contact us for more info."),
+    }
+    if status not in INFO:
+        return
+    subject, color, message = INFO[status]
+    gmail = os.getenv("GMAIL_ADDRESS")
+    pwd = os.getenv("GMAIL_APP_PASSWORD")
+    if not gmail or not pwd:
+        return
+    try:
+        msg = MIMEMultipart("alternative")
+        msg["Subject"] = f"{subject} — Order {order_code}"
+        msg["From"] = f"საკონდიტრო <{gmail}>"
+        msg["To"] = to_email
+        items_row = f'<p style="color:#6b4c58;font-size:13px;margin-top:8px">{items}</p>' if items else ""
+        msg.attach(MIMEText(f"""
+        <div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:24px">
+          <h2 style="color:#d4235e;margin-bottom:4px">საკონდიტრო</h2>
+          <hr style="border:none;border-top:1px solid #f0eaf4;margin:12px 0">
+          <h3 style="color:{color};margin-bottom:8px">{subject}</h3>
+          <p style="color:#1c0f18">Hi {customer_name},</p>
+          <p style="color:#6b4c58">{message}</p>
+          <div style="background:#fdf6f2;border-radius:12px;padding:16px;margin:20px 0">
+            <p style="color:#8b6070;font-size:13px;margin-bottom:4px">Order Code</p>
+            <p style="font-family:monospace;font-size:22px;font-weight:900;color:#1c0f18;letter-spacing:0.15em">{order_code}</p>
+            {items_row}
+          </div>
+          <p style="color:#8b6070;font-size:13px">საკონდიტრო · Made with ❤️</p>
+        </div>""", "html"))
+        with smtplib.SMTP_SSL("smtp.gmail.com", 465) as server:
+            server.login(gmail, pwd)
+            server.sendmail(gmail, to_email, msg.as_string())
+    except Exception:
+        pass
 
 
 # ── OTP ────────────────────────────────────────────────────────────────────────
@@ -319,7 +366,8 @@ def admin_get_orders(db: Session = Depends(get_db)):
     return [
         {"id": o.id, "customer_name": o.customer_name, "phone": o.phone, "address": o.address,
          "items": o.items, "total": str(o.total), "status": o.status, "order_type": o.order_type,
-         "order_code": o.order_code, "created_at": o.created_at.isoformat() if o.created_at else None}
+         "order_code": o.order_code, "customer_email": o.customer_email,
+         "created_at": o.created_at.isoformat() if o.created_at else None}
         for o in db.query(Order).order_by(Order.created_at.desc()).all()
     ]
 
@@ -328,8 +376,24 @@ def admin_update_order_status(order_id: int, data: OrderStatusUpdate, db: Sessio
     order = db.query(Order).filter(Order.id == order_id).first()
     if not order:
         raise HTTPException(status_code=404, detail="Order not found")
-    order.status = data.status; db.commit()
+    order.status = data.status
+    db.commit()
+    send_status_email(
+        order.customer_email or "",
+        order.customer_name,
+        order.order_code or f"#{order.id}",
+        data.status,
+        order.items,
+    )
     return {"message": "Status updated"}
+
+@app.delete("/api/admin/orders/{order_id}", dependencies=[Depends(require_admin)])
+def admin_delete_order(order_id: int, db: Session = Depends(get_db)):
+    order = db.query(Order).filter(Order.id == order_id).first()
+    if not order:
+        raise HTTPException(status_code=404, detail="Order not found")
+    db.delete(order); db.commit()
+    return {"message": "Order deleted"}
 
 
 # ── Admin: Team ────────────────────────────────────────────────────────────────
