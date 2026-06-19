@@ -77,9 +77,25 @@ export default function Cart({ cart, setCart, onClose, onOrder }) {
               </div>
 
               <div style={{ ...s.footer, borderTop: `1px solid ${c.border}`, background: isDark ? "rgba(255,255,255,0.02)" : "#fdf8fb" }}>
-                <div style={{ ...s.deliveryNote, background: isDark ? "rgba(34,197,94,0.08)" : "#e8f5e9", color: isDark ? "#4ade80" : "#2e7d32" }}>
-                  🚚 Free delivery for orders over ₾30
-                </div>
+                {/* Free delivery progress bar */}
+                {(() => {
+                  const FREE_THRESHOLD = 30;
+                  const pct = Math.min(100, (total / FREE_THRESHOLD) * 100);
+                  const remaining = Math.max(0, FREE_THRESHOLD - total);
+                  return (
+                    <div style={{ marginBottom: "1rem" }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "0.45rem" }}>
+                        <span style={{ fontSize: "0.73rem", color: remaining === 0 ? (isDark ? "#4ade80" : "#2e7d32") : c.muted, fontWeight: "600" }}>
+                          {remaining === 0 ? "🎉 Free delivery unlocked!" : `🚚 Add ₾${remaining.toFixed(2)} for free delivery`}
+                        </span>
+                        <span style={{ fontSize: "0.7rem", color: c.muted }}>{Math.round(pct)}%</span>
+                      </div>
+                      <div style={{ height: "5px", background: isDark ? "rgba(255,255,255,0.07)" : "#f0e6ec", borderRadius: "3px", overflow: "hidden" }}>
+                        <div style={{ height: "100%", width: `${pct}%`, background: remaining === 0 ? "linear-gradient(90deg, #22c55e, #16a34a)" : "linear-gradient(90deg, #d4235e, #a01848)", borderRadius: "3px", transition: "width 0.4s ease" }} />
+                      </div>
+                    </div>
+                  );
+                })()}
                 <div style={s.totalRow}>
                   <div>
                     <span style={{ ...s.totalLabel, color: c.text }}>Subtotal</span>
