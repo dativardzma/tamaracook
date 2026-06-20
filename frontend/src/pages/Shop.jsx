@@ -83,7 +83,8 @@ export default function Shop() {
           </button>
 
           <nav style={s.headerNav}>
-            {[["Menu", scrollToMenu], ["About", () => scrollTo("about-section")], ["Contact", () => scrollTo("contact-section")]].map(([label, fn]) => (
+            <button style={{ ...s.navLink, color: "white", background: "rgba(212,35,94,0.18)", border: "1px solid rgba(212,35,94,0.3)" }} onClick={() => navigate("/menu")}>🛍 Full Menu</button>
+            {[["About", () => scrollTo("about-section")], ["Contact", () => scrollTo("contact-section")]].map(([label, fn]) => (
               <button key={label} style={s.navLink} onClick={fn}
                 onMouseEnter={e => e.currentTarget.style.color = "white"}
                 onMouseLeave={e => e.currentTarget.style.color = "rgba(255,255,255,0.55)"}
