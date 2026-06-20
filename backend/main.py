@@ -27,6 +27,7 @@ with engine.connect() as _conn:
     _conn.execute(text("ALTER TABLE orders ADD COLUMN IF NOT EXISTS customer_email VARCHAR"))
     _conn.execute(text("ALTER TABLE products ADD COLUMN IF NOT EXISTS description VARCHAR"))
     _conn.execute(text("ALTER TABLE products ADD COLUMN IF NOT EXISTS image_data TEXT"))
+    _conn.execute(text("ALTER TABLE products ADD COLUMN IF NOT EXISTS sale_price NUMERIC"))
     _conn.execute(text("""
         CREATE TABLE IF NOT EXISTS otp_codes (
             id SERIAL PRIMARY KEY,
@@ -80,6 +81,7 @@ class ProductCreate(BaseModel):
     price: float
     emoji: str = "🍰"
     description: Optional[str] = None
+    sale_price: Optional[float] = None
     available: bool = True
 
 class ProductUpdate(BaseModel):
@@ -87,6 +89,7 @@ class ProductUpdate(BaseModel):
     price: Optional[float] = None
     emoji: Optional[str] = None
     description: Optional[str] = None
+    sale_price: Optional[float] = None
     available: Optional[bool] = None
 
 class SendOtp(BaseModel):
@@ -110,6 +113,7 @@ def product_dict(p: Product) -> dict:
         "id": p.id, "name": p.name, "price": str(p.price),
         "emoji": p.emoji, "description": p.description,
         "image_data": p.image_data, "available": p.available,
+        "sale_price": str(p.sale_price) if p.sale_price else None,
     }
 
 def send_email_otp(to_email: str, code: str) -> bool:

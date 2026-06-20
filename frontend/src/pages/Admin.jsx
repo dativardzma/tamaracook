@@ -45,7 +45,7 @@ export default function Admin() {
   const [orders, setOrders] = useState([]);
   const [team, setTeam] = useState([]);
   const [page, setPage] = useState("dashboard");
-  const [productForm, setProductForm] = useState({ name: "", price: "", emoji: "🍰", description: "" });
+  const [productForm, setProductForm] = useState({ name: "", price: "", emoji: "🍰", description: "", sale_price: "" });
   const [imageFile, setImageFile] = useState(null);
   const [imagePreview, setImagePreview] = useState(null);
   const [teamForm, setTeamForm] = useState({ email: "", password: "" });
@@ -103,7 +103,7 @@ export default function Admin() {
     setLoading(true);
     const res = await fetch(`${BACKEND_URL}/api/admin/products`, {
       method: "POST", headers,
-      body: JSON.stringify({ ...productForm, price: parseFloat(productForm.price), available: true }),
+      body: JSON.stringify({ ...productForm, price: parseFloat(productForm.price), sale_price: productForm.sale_price ? parseFloat(productForm.sale_price) : null, available: true }),
     });
     const data = await res.json();
 
@@ -118,7 +118,7 @@ export default function Admin() {
       });
     }
 
-    setProductForm({ name: "", price: "", emoji: "🍰", description: "" });
+    setProductForm({ name: "", price: "", emoji: "🍰", description: "", sale_price: "" });
     setImageFile(null);
     setImagePreview(null);
     flash("Product added successfully!");
@@ -569,6 +569,13 @@ export default function Admin() {
                       value={productForm.price}
                       onChange={(e) => setProductForm({ ...productForm, price: e.target.value })}
                       placeholder="25.00" required />
+
+                    <label style={s.label}>Sale Price / აქცია (₾) — leave empty if no sale</label>
+                    <input style={{ ...s.input, borderColor: productForm.sale_price ? "#d4235e" : undefined }}
+                      type="number" step="0.01" min="0"
+                      value={productForm.sale_price}
+                      onChange={(e) => setProductForm({ ...productForm, sale_price: e.target.value })}
+                      placeholder="e.g. 18.00 (optional)" />
 
                     <button style={s.addBtn} type="submit" disabled={loading}>
                       {loading ? "Adding..." : "➕ Add to Menu"}

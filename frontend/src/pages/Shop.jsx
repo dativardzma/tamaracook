@@ -44,10 +44,13 @@ export default function Shop() {
   }, []);
 
   const addToCart = (product) => {
+    const cartProduct = product.sale_price
+      ? { ...product, price: product.sale_price }
+      : product;
     setCart((prev) => {
-      const existing = prev.find((i) => i.id === product.id);
-      if (existing) return prev.map((i) => i.id === product.id ? { ...i, qty: i.qty + 1 } : i);
-      return [...prev, { ...product, qty: 1 }];
+      const existing = prev.find((i) => i.id === cartProduct.id);
+      if (existing) return prev.map((i) => i.id === cartProduct.id ? { ...i, qty: i.qty + 1 } : i);
+      return [...prev, { ...cartProduct, qty: 1 }];
     });
     setAddedIds((prev) => new Set([...prev, product.id]));
     setTimeout(() => setAddedIds((prev) => { const n = new Set(prev); n.delete(product.id); return n; }), 1600);
@@ -431,14 +434,23 @@ function ProductCard({ p, isDark, added, onAdd }) {
         <div style={{ position: "relative", height: "290px" }}>
           <img src={p.image_data} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block", transition: "transform 0.5s ease", transform: hovered ? "scale(1.04)" : "scale(1)" }} alt={p.name} />
           <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to top, rgba(0,0,0,0.88) 0%, rgba(0,0,0,0.12) 55%, transparent 100%)" }} />
-          <div style={{ position: "absolute", top: "0.9rem", right: "0.9rem", background: "rgba(0,0,0,0.5)", backdropFilter: "blur(12px)", color: "rgba(255,255,255,0.92)", fontSize: "0.6rem", fontWeight: "800", padding: "0.24rem 0.75rem", borderRadius: "50px", letterSpacing: "0.1em" }}>
-            ✓ FRESH TODAY
-          </div>
+          {p.sale_price ? (
+            <div style={{ position: "absolute", top: "0.9rem", right: "0.9rem", background: "linear-gradient(135deg, #d4235e, #a01848)", color: "white", fontSize: "0.6rem", fontWeight: "800", padding: "0.24rem 0.75rem", borderRadius: "50px", letterSpacing: "0.1em", boxShadow: "0 4px 12px rgba(212,35,94,0.5)" }}>
+              🏷 SALE
+            </div>
+          ) : (
+            <div style={{ position: "absolute", top: "0.9rem", right: "0.9rem", background: "rgba(0,0,0,0.5)", backdropFilter: "blur(12px)", color: "rgba(255,255,255,0.92)", fontSize: "0.6rem", fontWeight: "800", padding: "0.24rem 0.75rem", borderRadius: "50px", letterSpacing: "0.1em" }}>
+              ✓ FRESH TODAY
+            </div>
+          )}
           <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, padding: "1.5rem 1.6rem" }}>
             <h3 style={{ fontFamily: "'Playfair Display', serif", color: "white", fontSize: "1.15rem", fontWeight: "700", marginBottom: "0.3rem", textShadow: "0 2px 8px rgba(0,0,0,0.4)" }}>{p.name}</h3>
             {p.description && <p style={{ color: "rgba(255,255,255,0.6)", fontSize: "0.77rem", marginBottom: "0.9rem", lineHeight: 1.45 }}>{p.description}</p>}
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <span style={{ fontFamily: "'Playfair Display', serif", color: "white", fontWeight: "800", fontSize: "1.35rem" }}>₾{Number(p.price).toFixed(2)}</span>
+              <div>
+                {p.sale_price && <span style={{ color: "rgba(255,255,255,0.45)", fontSize: "0.85rem", textDecoration: "line-through", marginRight: "0.5rem" }}>₾{Number(p.price).toFixed(2)}</span>}
+                <span style={{ fontFamily: "'Playfair Display', serif", color: p.sale_price ? "#ff8fab" : "white", fontWeight: "800", fontSize: "1.35rem" }}>₾{Number(p.sale_price || p.price).toFixed(2)}</span>
+              </div>
               <button style={{ background: added ? "#22c55e" : "rgba(212,35,94,0.95)", backdropFilter: "blur(8px)", color: "white", border: "none", padding: "0.55rem 1.3rem", borderRadius: "50px", cursor: "pointer", fontSize: "0.85rem", fontWeight: "700", transition: "background 0.25s, transform 0.15s", transform: hovered ? "scale(1.06)" : "scale(1)", boxShadow: "0 4px 16px rgba(0,0,0,0.3)" }} onClick={onAdd}>
                 {added ? "✓ Added!" : "+ Add"}
               </button>
@@ -456,15 +468,20 @@ function ProductCard({ p, isDark, added, onAdd }) {
     >
       <div style={{ background: isDark ? "linear-gradient(135deg, rgba(212,35,94,0.09), rgba(100,20,50,0.18))" : "linear-gradient(135deg, #fff0f5, #ffdae8)", height: "178px", display: "flex", alignItems: "center", justifyContent: "center", position: "relative" }}>
         <span style={{ fontSize: "4.5rem", filter: hovered ? "drop-shadow(0 10px 20px rgba(212,35,94,0.32))" : "none", transition: "filter 0.3s, transform 0.3s", transform: hovered ? "scale(1.1)" : "scale(1)", display: "block" }}>{p.emoji}</span>
-        <div style={{ position: "absolute", top: "0.85rem", right: "0.85rem", background: "var(--accent-light)", color: "var(--accent)", border: "1px solid var(--accent-ring)", fontSize: "0.6rem", fontWeight: "800", padding: "0.22rem 0.7rem", borderRadius: "50px", letterSpacing: "0.08em" }}>✓ FRESH</div>
+        {p.sale_price ? (
+          <div style={{ position: "absolute", top: "0.85rem", right: "0.85rem", background: "linear-gradient(135deg, #d4235e, #a01848)", color: "white", border: "none", fontSize: "0.6rem", fontWeight: "800", padding: "0.22rem 0.7rem", borderRadius: "50px", letterSpacing: "0.08em", boxShadow: "0 4px 12px rgba(212,35,94,0.45)" }}>🏷 SALE</div>
+        ) : (
+          <div style={{ position: "absolute", top: "0.85rem", right: "0.85rem", background: "var(--accent-light)", color: "var(--accent)", border: "1px solid var(--accent-ring)", fontSize: "0.6rem", fontWeight: "800", padding: "0.22rem 0.7rem", borderRadius: "50px", letterSpacing: "0.08em" }}>✓ FRESH</div>
+        )}
       </div>
       <div style={{ padding: "1.3rem 1.6rem 1.6rem" }}>
         <h3 style={{ fontFamily: "'Playfair Display', serif", fontSize: "1.08rem", fontWeight: "700", color: "var(--text)", marginBottom: "0.4rem" }}>{p.name}</h3>
         {p.description && <p style={{ color: "var(--text-muted)", fontSize: "0.79rem", lineHeight: 1.6, marginBottom: "0.8rem" }}>{p.description}</p>}
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: "0.5rem" }}>
           <div>
-            <div style={{ color: "var(--text-faint)", fontSize: "0.6rem", textTransform: "uppercase", letterSpacing: "0.12em", marginBottom: "2px" }}>Price</div>
-            <span style={{ color: "var(--accent)", fontWeight: "800", fontSize: "1.25rem", fontFamily: "'Playfair Display', serif" }}>₾{Number(p.price).toFixed(2)}</span>
+            <div style={{ color: "var(--text-faint)", fontSize: "0.6rem", textTransform: "uppercase", letterSpacing: "0.12em", marginBottom: "2px" }}>{p.sale_price ? "Sale Price" : "Price"}</div>
+            {p.sale_price && <span style={{ color: "var(--text-faint)", fontSize: "0.82rem", textDecoration: "line-through", marginRight: "0.4rem" }}>₾{Number(p.price).toFixed(2)}</span>}
+            <span style={{ color: "var(--accent)", fontWeight: "800", fontSize: "1.25rem", fontFamily: "'Playfair Display', serif" }}>₾{Number(p.sale_price || p.price).toFixed(2)}</span>
           </div>
           <button style={{ background: added ? "#22c55e" : "var(--accent)", color: "white", border: "none", padding: "0.6rem 1.35rem", borderRadius: "50px", cursor: "pointer", fontSize: "0.85rem", fontWeight: "700", transition: "background 0.25s, transform 0.15s", transform: hovered ? "scale(1.05)" : "scale(1)", boxShadow: added ? "0 4px 14px rgba(34,197,94,0.35)" : "0 4px 16px rgba(212,35,94,0.3)" }} onClick={onAdd}>
             {added ? "✓ Added!" : "+ Add"}

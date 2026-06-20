@@ -21,6 +21,7 @@ class Product(Base):
     emoji = Column(String)
     description = Column(String, nullable=True)
     image_data = Column(Text, nullable=True)
+    sale_price = Column(Numeric, nullable=True)
     available = Column(Boolean, default=True)
 
 
