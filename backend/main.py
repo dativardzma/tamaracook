@@ -2,9 +2,7 @@ import os
 import base64
 import random
 import string
-import smtplib
-from email.mime.text import MIMEText
-from email.mime.multipart import MIMEMultipart
+import resend
 from datetime import datetime, timezone, timedelta
 from fastapi import FastAPI, Depends, HTTPException, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
@@ -115,18 +113,16 @@ def product_dict(p: Product) -> dict:
     }
 
 def send_email_otp(to_email: str, code: str) -> bool:
-    """Send OTP code via Gmail SMTP. Returns True if sent, False otherwise."""
-    gmail = os.getenv("GMAIL_ADDRESS")
-    pwd = os.getenv("GMAIL_APP_PASSWORD")
-    if not gmail or not pwd:
+    api_key = os.getenv("RESEND_API_KEY")
+    if not api_key:
         return False
     try:
-        msg = MIMEMultipart("alternative")
-        msg["Subject"] = f"Your verification code: {code}"
-        msg["From"] = f"საკონდიტრო <{gmail}>"
-        msg["To"] = to_email
-        msg.attach(MIMEText(f"Your verification code is: {code}\n\nValid for 5 minutes.", "plain"))
-        msg.attach(MIMEText(f"""
+        resend.api_key = api_key
+        resend.Emails.send({
+            "from": "orders@tamaracook.ink",
+            "to": to_email,
+            "subject": f"Your verification code: {code}",
+            "html": f"""
         <div style="font-family:sans-serif;max-width:420px;margin:0 auto;padding:24px">
           <h2 style="color:#d4235e;margin-bottom:4px">საკონდიტრო</h2>
           <p style="color:#8b6070;font-size:14px">Your order verification code</p>
@@ -134,20 +130,16 @@ def send_email_otp(to_email: str, code: str) -> bool:
                       background:#fdf6f2;padding:20px;border-radius:14px;text-align:center;
                       border:1px solid #f0e4ea;margin:20px 0">{code}</div>
           <p style="color:#8b6070;font-size:13px">Valid for 5 minutes. Do not share this code.</p>
-        </div>""", "html"))
-        with smtplib.SMTP_SSL("smtp.gmail.com", 465) as server:
-            server.login(gmail, pwd)
-            server.sendmail(gmail, to_email, msg.as_string())
+        </div>""",
+        })
         return True
     except Exception:
         return False
 
 
 def send_order_email(to_email: str, customer_name: str, order_code: str, email_type: str, items: str = "", total: str = ""):
-    """Send order email. All order emails share the same subject so Gmail threads them together."""
-    gmail = os.getenv("GMAIL_ADDRESS")
-    pwd = os.getenv("GMAIL_APP_PASSWORD")
-    if not gmail or not pwd or not to_email:
+    api_key = os.getenv("RESEND_API_KEY")
+    if not api_key or not to_email:
         return
     CONTENT = {
         "placed":           ("🍰", "#d4235e", "Order Received!",      f"Hi {customer_name}! Your order has been received and we'll start preparing it very soon.", "You'll get updates here as your order progresses. 🎉"),
@@ -185,14 +177,13 @@ def send_order_email(to_email: str, customer_name: str, order_code: str, email_t
       </div>
     </div>"""
     try:
-        msg = MIMEMultipart("alternative")
-        msg["Subject"] = f"Order {order_code} — საკონდიტრო"
-        msg["From"] = f"საკონდიტრო 🍰 <{gmail}>"
-        msg["To"] = to_email
-        msg.attach(MIMEText(html, "html"))
-        with smtplib.SMTP_SSL("smtp.gmail.com", 465) as server:
-            server.login(gmail, pwd)
-            server.sendmail(gmail, to_email, msg.as_string())
+        resend.api_key = api_key
+        resend.Emails.send({
+            "from": "orders@tamaracook.ink",
+            "to": to_email,
+            "subject": f"Order {order_code} — საკონდიტრო",
+            "html": html,
+        })
     except Exception:
         pass
 
