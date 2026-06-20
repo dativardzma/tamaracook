@@ -119,7 +119,7 @@ def send_email_otp(to_email: str, code: str) -> bool:
     try:
         resend.api_key = api_key
         resend.Emails.send({
-            "from": "orders@tamaracook.ink",
+            "from": "tamuna@tamaracook.ink",
             "to": to_email,
             "subject": f"Your verification code: {code}",
             "html": f"""
@@ -179,7 +179,7 @@ def send_order_email(to_email: str, customer_name: str, order_code: str, email_t
     try:
         resend.api_key = api_key
         resend.Emails.send({
-            "from": "orders@tamaracook.ink",
+            "from": "tamuna@tamaracook.ink",
             "to": to_email,
             "subject": f"Order {order_code} — საკონდიტრო",
             "html": html,
