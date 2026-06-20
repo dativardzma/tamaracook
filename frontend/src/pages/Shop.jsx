@@ -8,11 +8,6 @@ import ProfileModal from "../components/ProfileModal";
 
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "";
 
-const REVIEWS = [
-  { name: "Nino T.", city: "Vake", stars: 5, text: "The chocolate cake was absolutely divine — moist, rich, and beautifully decorated. Delivered right on time for my daughter's birthday. This is now our family's go-to bakery!", item: "Custom Cake" },
-  { name: "Giorgi M.", city: "Saburtalo", stars: 5, text: "Best pastries in Tbilisi, no contest. The croissants were still warm when they arrived. I placed my second order the very next morning.", item: "Morning Pastries" },
-  { name: "Mariam B.", city: "Didube", stars: 5, text: "We've been ordering for our office every Friday for three months. Consistently incredible quality and always on time. Everyone loves it!", item: "Weekly Box" },
-];
 
 export default function Shop() {
   const { isDark, toggle } = useTheme();
@@ -83,7 +78,6 @@ export default function Shop() {
           </button>
 
           <nav style={s.headerNav}>
-            <button style={{ ...s.navLink, color: "white", background: "rgba(212,35,94,0.18)", border: "1px solid rgba(212,35,94,0.3)" }} onClick={() => navigate("/menu")}>🛍 Full Menu</button>
             {[["About", () => scrollTo("about-section")], ["Contact", () => scrollTo("contact-section")]].map(([label, fn]) => (
               <button key={label} style={s.navLink} onClick={fn}
                 onMouseEnter={e => e.currentTarget.style.color = "white"}
@@ -147,8 +141,8 @@ export default function Shop() {
               style={{ background: "#d4235e", border: "none", color: "white", padding: "1rem 2.4rem", borderRadius: "50px", fontSize: "0.98rem", fontWeight: "700", cursor: "pointer", boxShadow: "0 8px 32px rgba(212,35,94,0.45)", transition: "transform 0.2s, box-shadow 0.2s" }}
               onMouseEnter={e => { e.currentTarget.style.transform = "translateY(-2px)"; e.currentTarget.style.boxShadow = "0 16px 40px rgba(212,35,94,0.55)"; }}
               onMouseLeave={e => { e.currentTarget.style.transform = ""; e.currentTarget.style.boxShadow = "0 8px 32px rgba(212,35,94,0.45)"; }}
-              onClick={scrollToMenu}
-            >Explore Our Menu ↓</button>
+              onClick={() => navigate("/menu")}
+            >Explore Our Menu →</button>
             {!userEmail && (
               <button style={{ background: "transparent", border: "1.5px solid rgba(255,255,255,0.22)", color: "rgba(255,255,255,0.85)", padding: "1rem 2.4rem", borderRadius: "50px", fontSize: "0.98rem", fontWeight: "500", cursor: "pointer", transition: "border-color 0.2s, color 0.2s" }}
                 onMouseEnter={e => { e.currentTarget.style.borderColor = "rgba(255,255,255,0.5)"; e.currentTarget.style.color = "white"; }}
@@ -158,15 +152,9 @@ export default function Shop() {
             )}
           </div>
 
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "2rem", animation: "fadeInUp 0.55s ease 0.4s both" }}>
-            {[["500+", "Happy Customers"], ["50+", "Menu Items"], ["5★", "Rating"], ["3yr", "Experience"]].map(([num, label], i, arr) => (
-              <span key={num} style={{ display: "contents" }}>
-                <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
-                  <span style={{ color: "white", fontFamily: "'Playfair Display', serif", fontSize: "1.7rem", fontWeight: "700", lineHeight: 1 }}>{num}</span>
-                  <span style={{ color: "rgba(255,255,255,0.35)", fontSize: "0.63rem", letterSpacing: "0.1em", textTransform: "uppercase", marginTop: "0.35rem" }}>{label}</span>
-                </div>
-                {i < arr.length - 1 && <div style={{ width: "1px", height: "40px", background: "rgba(255,255,255,0.1)" }} />}
-              </span>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "1.5rem", flexWrap: "wrap", animation: "fadeInUp 0.55s ease 0.4s both" }}>
+            {["🌅 Baked Fresh Daily", "🚚 Tbilisi Delivery", "💝 Homemade with Love", "🎂 Custom Orders"].map((tag) => (
+              <span key={tag} style={{ color: "rgba(255,255,255,0.45)", fontSize: "0.78rem", letterSpacing: "0.04em" }}>{tag}</span>
             ))}
           </div>
         </div>
@@ -215,39 +203,6 @@ export default function Shop() {
           </div>
         )}
       </main>
-
-      {/* ── Testimonials ── */}
-      <section style={{ background: "var(--feature-bg)", borderTop: "1px solid var(--border)", padding: "5.5rem 2rem" }}>
-        <div style={{ maxWidth: "1280px", margin: "0 auto" }}>
-          <div style={{ textAlign: "center", marginBottom: "3.5rem" }}>
-            <p style={{ color: "var(--accent)", fontSize: "0.65rem", letterSpacing: "0.25em", fontWeight: "700", textTransform: "uppercase", marginBottom: "0.5rem" }}>WHAT PEOPLE SAY</p>
-            <h2 style={{ ...s.sectionTitle, color: "var(--text)" }}>Loved by Tbilisi</h2>
-            <div style={{ width: "48px", height: "3px", background: "var(--accent)", borderRadius: "2px", margin: "0.8rem auto 0" }} />
-          </div>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: "1.5rem" }}>
-            {REVIEWS.map((r) => (
-              <div key={r.name} style={{ background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: "22px", padding: "2rem", boxShadow: "0 4px 24px var(--shadow)" }}>
-                <div style={{ display: "flex", gap: "2px", marginBottom: "1rem" }}>
-                  {Array.from({ length: r.stars }).map((_, i) => <span key={i} style={{ color: "#f59e0b", fontSize: "1.05rem" }}>★</span>)}
-                </div>
-                <p style={{ color: "var(--text-muted)", fontSize: "0.9rem", lineHeight: 1.75, marginBottom: "1.4rem", fontStyle: "italic" }}>"{r.text}"</p>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: "0.7rem" }}>
-                    <div style={{ width: "38px", height: "38px", borderRadius: "50%", background: "linear-gradient(135deg, #d4235e, #a01848)", color: "white", fontSize: "0.92rem", fontWeight: "700", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "'Playfair Display', serif", flexShrink: 0 }}>
-                      {r.name[0]}
-                    </div>
-                    <div>
-                      <div style={{ color: "var(--text)", fontWeight: "600", fontSize: "0.85rem" }}>{r.name}</div>
-                      <div style={{ color: "var(--text-faint)", fontSize: "0.72rem" }}>{r.city}</div>
-                    </div>
-                  </div>
-                  <span style={{ background: "var(--accent-light)", color: "var(--accent)", fontSize: "0.68rem", fontWeight: "600", padding: "0.22rem 0.7rem", borderRadius: "50px", border: "1px solid var(--accent-ring)", whiteSpace: "nowrap" }}>{r.item}</span>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
 
       {/* ── About ── */}
       <section style={{ background: "var(--bg-card)", borderTop: "1px solid var(--border)", padding: "6rem 2rem" }} id="about-section">
