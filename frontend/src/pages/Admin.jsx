@@ -45,7 +45,7 @@ export default function Admin() {
   const [orders, setOrders] = useState([]);
   const [team, setTeam] = useState([]);
   const [page, setPage] = useState("dashboard");
-  const [productForm, setProductForm] = useState({ name: "", price: "", emoji: "🍰", description: "", sale_price: "" });
+  const [productForm, setProductForm] = useState({ name: "", price: "", emoji: "🍰", description: "", sale_price: "", category: "" });
   const [imageFile, setImageFile] = useState(null);
   const [imagePreview, setImagePreview] = useState(null);
   const [teamForm, setTeamForm] = useState({ email: "", password: "" });
@@ -118,7 +118,7 @@ export default function Admin() {
       });
     }
 
-    setProductForm({ name: "", price: "", emoji: "🍰", description: "", sale_price: "" });
+    setProductForm({ name: "", price: "", emoji: "🍰", description: "", sale_price: "", category: "" });
     setImageFile(null);
     setImagePreview(null);
     flash("Product added successfully!");
@@ -549,6 +549,17 @@ export default function Admin() {
                           onClick={() => setProductForm({ ...productForm, emoji: em })}
                         >
                           {em}
+                        </button>
+                      ))}
+                    </div>
+
+                    <label style={s.label}>Category</label>
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: "0.5rem", marginBottom: "1rem" }}>
+                      {[["🎂", "Cakes"], ["🥐", "Pastries"], ["🍫", "Chocolates"], ["🍪", "Cookies"], ["🍬", "Sweets"], ["🎁", "Special"]].map(([icon, cat]) => (
+                        <button key={cat} type="button"
+                          onClick={() => setProductForm({ ...productForm, category: productForm.category === cat ? "" : cat })}
+                          style={{ padding: "0.4rem 0.9rem", borderRadius: "50px", border: `1.5px solid ${productForm.category === cat ? "#d4235e" : "var(--border-input)"}`, background: productForm.category === cat ? "rgba(212,35,94,0.12)" : "transparent", color: productForm.category === cat ? "#d4235e" : "var(--text-muted)", fontSize: "0.8rem", fontWeight: "600", cursor: "pointer" }}>
+                          {icon} {cat}
                         </button>
                       ))}
                     </div>

@@ -28,6 +28,7 @@ with engine.connect() as _conn:
     _conn.execute(text("ALTER TABLE products ADD COLUMN IF NOT EXISTS description VARCHAR"))
     _conn.execute(text("ALTER TABLE products ADD COLUMN IF NOT EXISTS image_data TEXT"))
     _conn.execute(text("ALTER TABLE products ADD COLUMN IF NOT EXISTS sale_price NUMERIC"))
+    _conn.execute(text("ALTER TABLE products ADD COLUMN IF NOT EXISTS category VARCHAR"))
     _conn.execute(text("""
         CREATE TABLE IF NOT EXISTS otp_codes (
             id SERIAL PRIMARY KEY,
@@ -82,6 +83,7 @@ class ProductCreate(BaseModel):
     emoji: str = "🍰"
     description: Optional[str] = None
     sale_price: Optional[float] = None
+    category: Optional[str] = None
     available: bool = True
 
 class ProductUpdate(BaseModel):
@@ -90,6 +92,7 @@ class ProductUpdate(BaseModel):
     emoji: Optional[str] = None
     description: Optional[str] = None
     sale_price: Optional[float] = None
+    category: Optional[str] = None
     available: Optional[bool] = None
 
 class SendOtp(BaseModel):
@@ -114,6 +117,7 @@ def product_dict(p: Product) -> dict:
         "emoji": p.emoji, "description": p.description,
         "image_data": p.image_data, "available": p.available,
         "sale_price": str(p.sale_price) if p.sale_price else None,
+        "category": p.category,
     }
 
 def send_email_otp(to_email: str, code: str) -> bool:
@@ -122,7 +126,7 @@ def send_email_otp(to_email: str, code: str) -> bool:
         return False
     try:
         resend.api_key = api_key
-        resend.Emails.send({
+        resend.Emails.send({  
             "from": "tamuna@tamaracook.ink",
             "to": to_email,
             "subject": f"Your verification code: {code}",

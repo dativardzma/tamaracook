@@ -20,7 +20,7 @@ export default function Menu() {
   const [authOpen, setAuthOpen] = useState(false);
   const [addedIds, setAddedIds] = useState(new Set());
   const [search, setSearch] = useState("");
-  const [filter, setFilter] = useState("all");
+  const [category, setCategory] = useState("all");
 
   useEffect(() => {
     fetch(`${BACKEND_URL}/api/products`)
@@ -42,12 +42,28 @@ export default function Menu() {
 
   const totalItems = cart.reduce((s, i) => s + i.qty, 0);
   const cartTotal = cart.reduce((s, i) => s + Number(i.price) * i.qty, 0);
-  const hasSale = products.some((p) => p.sale_price);
+
+  const CATEGORIES = [
+    { key: "all", icon: "🍽️", label: "All" },
+    { key: "Cakes", icon: "🎂", label: "Cakes" },
+    { key: "Pastries", icon: "🥐", label: "Pastries" },
+    { key: "Chocolates", icon: "🍫", label: "Chocolates" },
+    { key: "Cookies", icon: "🍪", label: "Cookies" },
+    { key: "Sweets", icon: "🍬", label: "Sweets" },
+    { key: "Special", icon: "🎁", label: "Special" },
+    { key: "sale", icon: "🏷️", label: "On Sale" },
+  ];
+
+  const activeCats = CATEGORIES.filter(c =>
+    c.key === "all" ||
+    (c.key === "sale" && products.some(p => p.sale_price)) ||
+    products.some(p => p.category === c.key)
+  );
 
   const filtered = products.filter((p) => {
     const matchSearch = p.name.toLowerCase().includes(search.toLowerCase()) || (p.description || "").toLowerCase().includes(search.toLowerCase());
-    const matchFilter = filter === "all" || (filter === "sale" && p.sale_price);
-    return matchSearch && matchFilter;
+    const matchCat = category === "all" || (category === "sale" ? !!p.sale_price : p.category === category);
+    return matchSearch && matchCat;
   });
 
   if (orderSuccess) {
@@ -135,17 +151,19 @@ export default function Menu() {
             />
           </div>
 
-          {/* Filter tabs */}
-          {hasSale && (
-            <div style={{ display: "flex", gap: "0.5rem", justifyContent: "center" }}>
-              {[["all", "All Items"], ["sale", "🏷 On Sale"]].map(([key, label]) => (
-                <button key={key} onClick={() => setFilter(key)}
-                  style={{ background: filter === key ? "linear-gradient(135deg, #d4235e, #a01848)" : "rgba(255,255,255,0.07)", border: filter === key ? "none" : "1px solid rgba(255,255,255,0.12)", color: "white", padding: "0.5rem 1.3rem", borderRadius: "50px", cursor: "pointer", fontSize: "0.82rem", fontWeight: filter === key ? "700" : "400", transition: "all 0.2s", boxShadow: filter === key ? "0 4px 14px rgba(212,35,94,0.35)" : "none" }}>
-                  {label}
+          {/* Category tabs */}
+          <div style={{ display: "flex", gap: "0.5rem", justifyContent: "center", flexWrap: "wrap", marginTop: "0.5rem" }}>
+            {activeCats.map(({ key, icon, label }) => {
+              const active = category === key;
+              const isSaleTab = key === "sale";
+              return (
+                <button key={key} onClick={() => setCategory(key)}
+                  style={{ background: active ? (isSaleTab ? "linear-gradient(135deg, #d4235e, #a01848)" : "rgba(255,255,255,0.18)") : "rgba(255,255,255,0.06)", border: active ? (isSaleTab ? "none" : "1px solid rgba(255,255,255,0.3)") : "1px solid rgba(255,255,255,0.1)", color: "white", padding: "0.5rem 1.1rem", borderRadius: "50px", cursor: "pointer", fontSize: "0.82rem", fontWeight: active ? "700" : "400", transition: "all 0.2s", boxShadow: active && isSaleTab ? "0 4px 14px rgba(212,35,94,0.4)" : "none", display: "flex", alignItems: "center", gap: "0.35rem" }}>
+                  {icon} {label}
                 </button>
-              ))}
-            </div>
-          )}
+              );
+            })}
+          </div>
         </div>
       </div>
 
@@ -167,8 +185,8 @@ export default function Menu() {
           </div>
         ) : (
           <>
-            {/* Sale section */}
-            {filter !== "sale" && filtered.some(p => p.sale_price) && (
+            {/* Sale section (only when browsing "all") */}
+            {category === "all" && filtered.some(p => p.sale_price) && (
               <div style={{ marginBottom: "4rem" }}>
                 <SectionHeader label="LIMITED TIME OFFER" title="🏷 On Sale" count={filtered.filter(p => p.sale_price).length} accent />
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: "1.8rem" }}>
@@ -180,13 +198,13 @@ export default function Menu() {
             )}
 
             {/* Main grid */}
-            {filtered.filter(p => filter === "sale" || !p.sale_price).length > 0 && (
+            {filtered.filter(p => category !== "all" || !p.sale_price).length > 0 && (
               <div>
-                {filter !== "sale" && filtered.some(p => p.sale_price) && (
-                  <SectionHeader label="FRESH TODAY" title="Everything Else" count={filtered.filter(p => !p.sale_price).length} />
+                {category === "all" && filtered.some(p => p.sale_price) && (
+                  <SectionHeader label="FRESH TODAY" title="Full Menu" count={filtered.filter(p => !p.sale_price).length} />
                 )}
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: "1.8rem" }}>
-                  {filtered.filter(p => filter === "sale" || !p.sale_price).map((p) => (
+                  {filtered.filter(p => category !== "all" || !p.sale_price).map((p) => (
                     <ProductCard key={p.id} p={p} isDark={isDark} added={addedIds.has(p.id)} onAdd={() => addToCart(p)} />
                   ))}
                 </div>

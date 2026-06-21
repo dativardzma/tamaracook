@@ -188,18 +188,31 @@ export default function Shop() {
         {loading ? (
           <div style={{ textAlign: "center", padding: "7rem 2rem" }}>
             <div style={{ width: "40px", height: "40px", border: "3px solid var(--border)", borderTop: "3px solid var(--accent)", borderRadius: "50%", margin: "0 auto 1.5rem", animation: "spin 0.8s linear infinite" }} />
-            <p style={{ color: "var(--text-muted)", fontSize: "0.95rem" }}>Loading today's menu...</p>
+            <p style={{ color: "var(--text-muted)", fontSize: "0.95rem" }}>Loading...</p>
           </div>
-        ) : products.length === 0 ? (
-          <div style={{ textAlign: "center", padding: "7rem 2rem" }}>
-            <span style={{ fontSize: "3.5rem", display: "block", marginBottom: "1rem" }}>🍽️</span>
-            <p style={{ color: "var(--text-muted)", fontSize: "1rem" }}>Menu coming soon. Check back later!</p>
-          </div>
+        ) : products.filter(p => p.sale_price).length > 0 ? (
+          <>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))", gap: "1.6rem", marginBottom: "2.5rem" }}>
+              {products.filter(p => p.sale_price).map((p) => (
+                <ProductCard key={p.id} p={p} isDark={isDark} added={addedIds.has(p.id)} onAdd={() => addToCart(p)} />
+              ))}
+            </div>
+            <div style={{ textAlign: "center" }}>
+              <button onClick={() => navigate("/menu")} style={{ background: "transparent", border: "1.5px solid var(--border)", color: "var(--text-muted)", padding: "0.75rem 2rem", borderRadius: "50px", cursor: "pointer", fontSize: "0.88rem", fontWeight: "600", transition: "all 0.2s" }}
+                onMouseEnter={e => { e.currentTarget.style.borderColor = "var(--accent)"; e.currentTarget.style.color = "var(--accent)"; }}
+                onMouseLeave={e => { e.currentTarget.style.borderColor = "var(--border)"; e.currentTarget.style.color = "var(--text-muted)"; }}>
+                See Full Menu →
+              </button>
+            </div>
+          </>
         ) : (
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))", gap: "1.6rem" }}>
-            {products.map((p) => (
-              <ProductCard key={p.id} p={p} isDark={isDark} added={addedIds.has(p.id)} onAdd={() => addToCart(p)} />
-            ))}
+          <div style={{ textAlign: "center", padding: "5rem 2rem" }}>
+            <span style={{ fontSize: "3rem", display: "block", marginBottom: "1.2rem" }}>🍰</span>
+            <p style={{ fontFamily: "'Playfair Display', serif", color: "var(--text)", fontWeight: "700", fontSize: "1.15rem", marginBottom: "0.6rem" }}>Fresh items coming soon</p>
+            <p style={{ color: "var(--text-muted)", fontSize: "0.88rem", marginBottom: "1.8rem" }}>Browse our full menu and place your order</p>
+            <button onClick={() => navigate("/menu")} style={{ background: "var(--accent)", color: "white", border: "none", padding: "0.85rem 2.2rem", borderRadius: "50px", cursor: "pointer", fontSize: "0.9rem", fontWeight: "700", boxShadow: "0 6px 20px rgba(212,35,94,0.35)" }}>
+              Browse Menu →
+            </button>
           </div>
         )}
       </main>

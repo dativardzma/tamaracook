@@ -22,6 +22,7 @@ class Product(Base):
     description = Column(String, nullable=True)
     image_data = Column(Text, nullable=True)
     sale_price = Column(Numeric, nullable=True)
+    category = Column(String, nullable=True)
     available = Column(Boolean, default=True)
 
 
