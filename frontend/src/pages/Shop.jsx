@@ -5,6 +5,7 @@ import Cart from "../components/Cart";
 import OrderForm from "../components/OrderForm";
 import AuthModal from "../components/AuthModal";
 import ProfileModal from "../components/ProfileModal";
+import ProductModal from "../components/ProductModal";
 
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "";
 
@@ -25,6 +26,7 @@ export default function Shop() {
   const [isDelivery, setIsDelivery] = useState(() => localStorage.getItem("is_delivery") === "true");
   const [scrolled, setScrolled] = useState(false);
   const [addedIds, setAddedIds] = useState(new Set());
+  const [selectedProduct, setSelectedProduct] = useState(null);
   const menuRef = useRef(null);
   const navigate = useNavigate();
 
@@ -194,7 +196,7 @@ export default function Shop() {
           <>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))", gap: "1.6rem", marginBottom: "2.5rem" }}>
               {products.filter(p => p.sale_price).map((p) => (
-                <ProductCard key={p.id} p={p} isDark={isDark} added={addedIds.has(p.id)} onAdd={() => addToCart(p)} />
+                <ProductCard key={p.id} p={p} isDark={isDark} added={addedIds.has(p.id)} onAdd={() => addToCart(p)} onOpenModal={() => setSelectedProduct(p)} />
               ))}
             </div>
             <div style={{ textAlign: "center" }}>
@@ -346,6 +348,15 @@ export default function Shop() {
         />
       )}
 
+      {selectedProduct && (
+        <ProductModal
+          product={selectedProduct}
+          onClose={() => setSelectedProduct(null)}
+          onAdd={(p) => { addToCart(p); }}
+          alreadyAdded={addedIds.has(selectedProduct.id)}
+        />
+      )}
+
       {/* Order Success Modal */}
       {orderSuccess && (
         <div style={os.overlay} onClick={() => setOrderSuccess(false)}>
@@ -391,7 +402,7 @@ function FeatureCard({ f, hasBorder }) {
 }
 
 // ── Product Card ──────────────────────────────────────────────────────────────
-function ProductCard({ p, isDark, added, onAdd }) {
+function ProductCard({ p, isDark, added, onAdd, onOpenModal }) {
   const [hovered, setHovered] = useState(false);
 
   if (p.image_data) {
@@ -399,6 +410,7 @@ function ProductCard({ p, isDark, added, onAdd }) {
       <div
         style={{ borderRadius: "22px", overflow: "hidden", cursor: "pointer", boxShadow: hovered ? "0 28px 64px rgba(0,0,0,0.28)" : "0 4px 24px rgba(0,0,0,0.1)", transform: hovered ? "translateY(-8px) scale(1.01)" : "translateY(0) scale(1)", transition: "transform 0.3s ease, box-shadow 0.3s ease", position: "relative" }}
         onMouseEnter={() => setHovered(true)} onMouseLeave={() => setHovered(false)}
+        onClick={onOpenModal}
       >
         <div style={{ position: "relative", height: "290px" }}>
           <img src={p.image_data} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block", transition: "transform 0.5s ease", transform: hovered ? "scale(1.04)" : "scale(1)" }} alt={p.name} />
@@ -420,7 +432,7 @@ function ProductCard({ p, isDark, added, onAdd }) {
                 {p.sale_price && <span style={{ color: "rgba(255,255,255,0.45)", fontSize: "0.85rem", textDecoration: "line-through", marginRight: "0.5rem" }}>₾{Number(p.price).toFixed(2)}</span>}
                 <span style={{ fontFamily: "'Playfair Display', serif", color: p.sale_price ? "#ff8fab" : "white", fontWeight: "800", fontSize: "1.35rem" }}>₾{Number(p.sale_price || p.price).toFixed(2)}</span>
               </div>
-              <button style={{ background: added ? "#22c55e" : "rgba(212,35,94,0.95)", backdropFilter: "blur(8px)", color: "white", border: "none", padding: "0.55rem 1.3rem", borderRadius: "50px", cursor: "pointer", fontSize: "0.85rem", fontWeight: "700", transition: "background 0.25s, transform 0.15s", transform: hovered ? "scale(1.06)" : "scale(1)", boxShadow: "0 4px 16px rgba(0,0,0,0.3)" }} onClick={onAdd}>
+              <button style={{ background: added ? "#22c55e" : "rgba(212,35,94,0.95)", backdropFilter: "blur(8px)", color: "white", border: "none", padding: "0.55rem 1.3rem", borderRadius: "50px", cursor: "pointer", fontSize: "0.85rem", fontWeight: "700", transition: "background 0.25s, transform 0.15s", transform: hovered ? "scale(1.06)" : "scale(1)", boxShadow: "0 4px 16px rgba(0,0,0,0.3)" }} onClick={(e) => { e.stopPropagation(); onAdd(); }}>
                 {added ? "✓ Added!" : "+ Add"}
               </button>
             </div>
@@ -432,8 +444,9 @@ function ProductCard({ p, isDark, added, onAdd }) {
 
   return (
     <div
-      style={{ background: "var(--bg-card)", borderRadius: "22px", overflow: "hidden", boxShadow: hovered ? "0 22px 52px var(--shadow-md)" : "0 4px 24px var(--shadow)", transform: hovered ? "translateY(-8px)" : "translateY(0)", transition: "transform 0.3s ease, box-shadow 0.3s ease", border: "1px solid var(--border)" }}
+      style={{ background: "var(--bg-card)", borderRadius: "22px", overflow: "hidden", boxShadow: hovered ? "0 22px 52px var(--shadow-md)" : "0 4px 24px var(--shadow)", transform: hovered ? "translateY(-8px)" : "translateY(0)", transition: "transform 0.3s ease, box-shadow 0.3s ease", border: "1px solid var(--border)", cursor: "pointer" }}
       onMouseEnter={() => setHovered(true)} onMouseLeave={() => setHovered(false)}
+      onClick={onOpenModal}
     >
       <div style={{ background: isDark ? "linear-gradient(135deg, rgba(212,35,94,0.09), rgba(100,20,50,0.18))" : "linear-gradient(135deg, #fff0f5, #ffdae8)", height: "178px", display: "flex", alignItems: "center", justifyContent: "center", position: "relative" }}>
         <span style={{ fontSize: "4.5rem", filter: hovered ? "drop-shadow(0 10px 20px rgba(212,35,94,0.32))" : "none", transition: "filter 0.3s, transform 0.3s", transform: hovered ? "scale(1.1)" : "scale(1)", display: "block" }}>{p.emoji}</span>
@@ -452,7 +465,7 @@ function ProductCard({ p, isDark, added, onAdd }) {
             {p.sale_price && <span style={{ color: "var(--text-faint)", fontSize: "0.82rem", textDecoration: "line-through", marginRight: "0.4rem" }}>₾{Number(p.price).toFixed(2)}</span>}
             <span style={{ color: "var(--accent)", fontWeight: "800", fontSize: "1.25rem", fontFamily: "'Playfair Display', serif" }}>₾{Number(p.sale_price || p.price).toFixed(2)}</span>
           </div>
-          <button style={{ background: added ? "#22c55e" : "var(--accent)", color: "white", border: "none", padding: "0.6rem 1.35rem", borderRadius: "50px", cursor: "pointer", fontSize: "0.85rem", fontWeight: "700", transition: "background 0.25s, transform 0.15s", transform: hovered ? "scale(1.05)" : "scale(1)", boxShadow: added ? "0 4px 14px rgba(34,197,94,0.35)" : "0 4px 16px rgba(212,35,94,0.3)" }} onClick={onAdd}>
+          <button style={{ background: added ? "#22c55e" : "var(--accent)", color: "white", border: "none", padding: "0.6rem 1.35rem", borderRadius: "50px", cursor: "pointer", fontSize: "0.85rem", fontWeight: "700", transition: "background 0.25s, transform 0.15s", transform: hovered ? "scale(1.05)" : "scale(1)", boxShadow: added ? "0 4px 14px rgba(34,197,94,0.35)" : "0 4px 16px rgba(212,35,94,0.3)" }} onClick={(e) => { e.stopPropagation(); onAdd(); }}>
             {added ? "✓ Added!" : "+ Add"}
           </button>
         </div>

@@ -15,6 +15,8 @@ export default function OrderForm({ cart, backendUrl, onClose, onSuccess }) {
   const [codeDigits, setCodeDigits] = useState(["", "", "", "", "", ""]);
   const [loading, setLoading] = useState(false);
   const [paying, setPaying] = useState(false);
+  const [payStep, setPayStep] = useState(0);
+  const [cvvFocused, setCvvFocused] = useState(false);
   const [error, setError] = useState("");
   const [otpError, setOtpError] = useState("");
   const [resending, setResending] = useState(false);
@@ -45,7 +47,22 @@ export default function OrderForm({ cart, backendUrl, onClose, onSuccess }) {
     digitRefs[Math.min(text.length, 5)].current?.focus();
   };
 
-  const formatCard = (v) => v.replace(/\D/g, "").slice(0, 16).replace(/(.{4})/g, "$1 ").trim();
+  const rawNum = card.number.replace(/\s/g, "");
+  const cardType = rawNum.startsWith("4") ? "visa"
+    : (rawNum.startsWith("51") || rawNum.startsWith("52") || rawNum.startsWith("53") || rawNum.startsWith("54") || rawNum.startsWith("55")) ? "mastercard"
+    : (rawNum.startsWith("34") || rawNum.startsWith("37")) ? "amex"
+    : "generic";
+  const cardGradient = cardType === "visa" ? "linear-gradient(135deg, #1a237e, #1565c0, #0288d1)"
+    : cardType === "mastercard" ? "linear-gradient(135deg, #b71c1c, #e53935, #f57c00)"
+    : cardType === "amex" ? "linear-gradient(135deg, #1b5e20, #2e7d32, #00897b)"
+    : "linear-gradient(135deg, #1c0f18, #3a1430, #5a1a3a)";
+  const cardLabel = cardType === "visa" ? "VISA" : cardType === "mastercard" ? "Mastercard" : cardType === "amex" ? "AMEX" : "Credit / Debit";
+
+  const formatCard = (v) => {
+    const d = v.replace(/\D/g, "").slice(0, cardType === "amex" ? 15 : 16);
+    if (cardType === "amex") return d.replace(/^(\d{4})(\d{6})(\d{0,5}).*/, (_, a, b, c) => [a, b, c].filter(Boolean).join(" "));
+    return d.replace(/(.{4})/g, "$1 ").trim();
+  };
   const formatExpiry = (v) => {
     const d = v.replace(/\D/g, "").slice(0, 4);
     return d.length >= 3 ? `${d.slice(0, 2)}/${d.slice(2)}` : d;
@@ -106,7 +123,9 @@ export default function OrderForm({ cart, backendUrl, onClose, onSuccess }) {
     if (!card.name.trim()) { setError("Enter the name on your card."); return; }
     setError("");
     setPaying(true);
-    await new Promise((r) => setTimeout(r, 2000));
+    setPayStep(1); await new Promise((r) => setTimeout(r, 900));
+    setPayStep(2); await new Promise((r) => setTimeout(r, 800));
+    setPayStep(3); await new Promise((r) => setTimeout(r, 600));
     try {
       const token = localStorage.getItem("token");
       const headers = { "Content-Type": "application/json" };
@@ -292,96 +311,144 @@ export default function OrderForm({ cart, backendUrl, onClose, onSuccess }) {
           <div className="animate-fadeIn">
             <div style={s.header}>
               <div style={{ ...s.headerIcon, background: "linear-gradient(135deg, #f0fdf4, #dcfce7)" }}>💳</div>
-              <h2 style={{ ...s.title, color: c.text }}>Payment</h2>
-              <p style={{ ...s.sub, color: c.muted }}>Enter your card details to complete the order</p>
+              <h2 style={{ ...s.title, color: c.text }}>Secure Payment</h2>
+              <p style={{ ...s.sub, color: c.muted }}>Your payment is encrypted and secure</p>
             </div>
 
-            {/* Amount due */}
-            <div style={{ background: isDark ? "rgba(212,35,94,0.08)" : "#fff0f5", border: `1px solid ${isDark ? "rgba(212,35,94,0.2)" : "#f5dde8"}`, borderRadius: "16px", padding: "1rem 1.4rem", marginBottom: "1.4rem", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <div>
-                <p style={{ color: c.muted, fontSize: "0.72rem", fontWeight: "600", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: "0.2rem" }}>Amount Due</p>
-                <p style={{ fontFamily: "'Playfair Display', serif", color: "#d4235e", fontSize: "1.8rem", fontWeight: "800", lineHeight: 1 }}>₾{total.toFixed(2)}</p>
-              </div>
-              <div style={{ textAlign: "right" }}>
-                <p style={{ color: c.muted, fontSize: "0.72rem", marginBottom: "0.3rem" }}>{cart.length} item{cart.length !== 1 ? "s" : ""}</p>
-                <div style={{ display: "flex", gap: "0.3rem", justifyContent: "flex-end" }}>
-                  {["💳", "🏦"].map(i => <span key={i} style={{ fontSize: "1.1rem" }}>{i}</span>)}
-                </div>
+            {/* Accepted cards row */}
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "1.1rem" }}>
+              <span style={{ color: c.muted, fontSize: "0.72rem" }}>We accept:</span>
+              <div style={{ display: "flex", gap: "0.4rem" }}>
+                {[["#1a237e", "VISA"], ["#b71c1c", "MC"], ["#1b5e20", "AMEX"]].map(([col, name]) => (
+                  <div key={name} style={{ background: col, color: "white", fontSize: "0.58rem", fontWeight: "800", padding: "0.22rem 0.6rem", borderRadius: "6px", letterSpacing: "0.06em", opacity: cardType !== "generic" && ((name === "VISA" && cardType === "visa") || (name === "MC" && cardType === "mastercard") || (name === "AMEX" && cardType === "amex")) ? 1 : 0.35, transition: "opacity 0.2s" }}>{name}</div>
+                ))}
               </div>
             </div>
 
-            {/* Visual card preview */}
-            <div style={{ background: "linear-gradient(135deg, #1c0f18, #3a1430, #5a1a3a)", borderRadius: "18px", padding: "1.4rem 1.6rem", marginBottom: "1.4rem", position: "relative", overflow: "hidden", minHeight: "120px" }}>
-              <div style={{ position: "absolute", width: "180px", height: "180px", top: "-60px", right: "-40px", borderRadius: "50%", background: "rgba(212,35,94,0.15)", pointerEvents: "none" }} />
-              <div style={{ position: "absolute", width: "120px", height: "120px", bottom: "-40px", left: "30px", borderRadius: "50%", background: "rgba(255,255,255,0.04)", pointerEvents: "none" }} />
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "1rem" }}>
-                <span style={{ color: "rgba(255,255,255,0.5)", fontSize: "0.7rem", letterSpacing: "0.12em", textTransform: "uppercase" }}>Credit / Debit Card</span>
-                <span style={{ color: "rgba(255,255,255,0.3)", fontSize: "1.2rem" }}>💳</span>
-              </div>
-              <p style={{ fontFamily: "monospace", color: "white", fontSize: "1.1rem", letterSpacing: "0.18em", fontWeight: "600", marginBottom: "0.8rem" }}>
-                {card.number || "•••• •••• •••• ••••"}
-              </p>
-              <div style={{ display: "flex", justifyContent: "space-between" }}>
-                <div>
-                  <p style={{ color: "rgba(255,255,255,0.35)", fontSize: "0.58rem", textTransform: "uppercase", letterSpacing: "0.08em" }}>Card Holder</p>
-                  <p style={{ color: "white", fontSize: "0.82rem", fontWeight: "600", marginTop: "2px" }}>{card.name || "YOUR NAME"}</p>
+            {/* Live card preview — flips on CVV focus */}
+            <div style={{ perspective: "1000px", marginBottom: "1.2rem", height: "148px" }}>
+              <div style={{ position: "relative", width: "100%", height: "100%", transformStyle: "preserve-3d", transition: "transform 0.5s ease", transform: cvvFocused ? "rotateY(180deg)" : "rotateY(0deg)" }}>
+
+                {/* Front */}
+                <div style={{ position: "absolute", inset: 0, backfaceVisibility: "hidden", WebkitBackfaceVisibility: "hidden", background: cardGradient, borderRadius: "16px", padding: "1.2rem 1.4rem", overflow: "hidden" }}>
+                  <div style={{ position: "absolute", width: "160px", height: "160px", top: "-50px", right: "-30px", borderRadius: "50%", background: "rgba(255,255,255,0.07)", pointerEvents: "none" }} />
+                  <div style={{ position: "absolute", width: "100px", height: "100px", bottom: "-30px", left: "20px", borderRadius: "50%", background: "rgba(255,255,255,0.05)", pointerEvents: "none" }} />
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.7rem" }}>
+                    <div style={{ width: "32px", height: "24px", background: "rgba(255,255,255,0.3)", borderRadius: "4px", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                      <div style={{ width: "18px", height: "14px", background: "rgba(255,200,0,0.6)", borderRadius: "2px" }} />
+                    </div>
+                    <span style={{ color: "rgba(255,255,255,0.85)", fontSize: "0.72rem", fontWeight: "800", letterSpacing: "0.1em" }}>{cardLabel}</span>
+                  </div>
+                  <p style={{ fontFamily: "monospace", color: "white", fontSize: "1rem", letterSpacing: "0.2em", fontWeight: "600", marginBottom: "0.8rem", textShadow: "0 1px 4px rgba(0,0,0,0.3)" }}>
+                    {card.number || (cardType === "amex" ? "•••• •••••• •••••" : "•••• •••• •••• ••••")}
+                  </p>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}>
+                    <div>
+                      <p style={{ color: "rgba(255,255,255,0.4)", fontSize: "0.52rem", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: "2px" }}>Card Holder</p>
+                      <p style={{ color: "white", fontSize: "0.78rem", fontWeight: "600", letterSpacing: "0.04em" }}>{card.name || "YOUR NAME"}</p>
+                    </div>
+                    <div style={{ textAlign: "right" }}>
+                      <p style={{ color: "rgba(255,255,255,0.4)", fontSize: "0.52rem", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: "2px" }}>Expires</p>
+                      <p style={{ color: "white", fontSize: "0.78rem", fontWeight: "600" }}>{card.expiry || "MM/YY"}</p>
+                    </div>
+                  </div>
                 </div>
-                <div style={{ textAlign: "right" }}>
-                  <p style={{ color: "rgba(255,255,255,0.35)", fontSize: "0.58rem", textTransform: "uppercase", letterSpacing: "0.08em" }}>Expires</p>
-                  <p style={{ color: "white", fontSize: "0.82rem", fontWeight: "600", marginTop: "2px" }}>{card.expiry || "MM/YY"}</p>
+
+                {/* Back */}
+                <div style={{ position: "absolute", inset: 0, backfaceVisibility: "hidden", WebkitBackfaceVisibility: "hidden", transform: "rotateY(180deg)", background: cardGradient, borderRadius: "16px", overflow: "hidden" }}>
+                  <div style={{ height: "36px", background: "rgba(0,0,0,0.45)", margin: "20px 0 16px" }} />
+                  <div style={{ padding: "0 1.4rem" }}>
+                    <p style={{ color: "rgba(255,255,255,0.5)", fontSize: "0.58rem", letterSpacing: "0.1em", marginBottom: "6px" }}>CVV</p>
+                    <div style={{ background: "rgba(255,255,255,0.9)", borderRadius: "6px", padding: "0.5rem 1rem", display: "flex", justifyContent: "flex-end" }}>
+                      <span style={{ fontFamily: "monospace", color: "#1c0f18", fontSize: "1rem", fontWeight: "700", letterSpacing: "0.2em" }}>
+                        {card.cvv ? "•".repeat(card.cvv.length) : "•••"}
+                      </span>
+                    </div>
+                    <p style={{ color: "rgba(255,255,255,0.35)", fontSize: "0.58rem", marginTop: "8px", textAlign: "right" }}>3-digit code on back of card</p>
+                  </div>
                 </div>
               </div>
             </div>
 
             <form onSubmit={placeOrder}>
-              <label style={{ ...s.label, color: c.muted }}>Card Number</label>
-              <input
-                style={{ ...s.input, background: c.inputBg, border: `1.5px solid ${c.inputBorder}`, color: c.text, fontFamily: "monospace", letterSpacing: "0.08em" }}
-                placeholder="1234 5678 9012 3456" value={card.number} inputMode="numeric"
-                onChange={(e) => setCard({ ...card, number: formatCard(e.target.value) })} />
+              {/* Card number */}
+              <div style={{ position: "relative", marginBottom: "0" }}>
+                <label style={{ ...s.label, color: c.muted }}>Card Number</label>
+                <div style={{ position: "relative" }}>
+                  <input
+                    style={{ ...s.input, background: c.inputBg, border: `1.5px solid ${rawNum.length === (cardType === "amex" ? 15 : 16) ? "#22c55e" : c.inputBorder}`, color: c.text, fontFamily: "monospace", letterSpacing: "0.1em", paddingRight: "3rem" }}
+                    placeholder={cardType === "amex" ? "3782 822463 10005" : "1234 5678 9012 3456"}
+                    value={card.number} inputMode="numeric"
+                    onChange={(e) => setCard({ ...card, number: formatCard(e.target.value) })} />
+                  {rawNum.length === (cardType === "amex" ? 15 : 16) && (
+                    <span style={{ position: "absolute", right: "1rem", top: "50%", transform: "translateY(-55%)", color: "#22c55e", fontSize: "1rem" }}>✓</span>
+                  )}
+                </div>
+              </div>
 
               <label style={{ ...s.label, color: c.muted }}>Name on Card</label>
-              <input
-                style={{ ...s.input, background: c.inputBg, border: `1.5px solid ${c.inputBorder}`, color: c.text }}
-                placeholder="TAMAR IVANIDZE" value={card.name}
-                onChange={(e) => setCard({ ...card, name: e.target.value.toUpperCase() })} />
+              <div style={{ position: "relative" }}>
+                <input
+                  style={{ ...s.input, background: c.inputBg, border: `1.5px solid ${card.name.length > 2 ? "#22c55e" : c.inputBorder}`, color: c.text, paddingRight: "3rem" }}
+                  placeholder="TAMAR IVANIDZE" value={card.name}
+                  onChange={(e) => setCard({ ...card, name: e.target.value.toUpperCase() })} />
+                {card.name.length > 2 && <span style={{ position: "absolute", right: "1rem", top: "50%", transform: "translateY(-55%)", color: "#22c55e", fontSize: "1rem" }}>✓</span>}
+              </div>
 
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.8rem" }}>
                 <div>
-                  <label style={{ ...s.label, color: c.muted }}>Expiry Date</label>
+                  <label style={{ ...s.label, color: c.muted }}>Expiry</label>
                   <input
-                    style={{ ...s.input, background: c.inputBg, border: `1.5px solid ${c.inputBorder}`, color: c.text, fontFamily: "monospace" }}
+                    style={{ ...s.input, background: c.inputBg, border: `1.5px solid ${card.expiry.length === 5 ? "#22c55e" : c.inputBorder}`, color: c.text, fontFamily: "monospace", textAlign: "center", letterSpacing: "0.1em" }}
                     placeholder="MM/YY" value={card.expiry} inputMode="numeric"
                     onChange={(e) => setCard({ ...card, expiry: formatExpiry(e.target.value) })} />
                 </div>
                 <div>
-                  <label style={{ ...s.label, color: c.muted }}>CVV</label>
+                  <label style={{ ...s.label, color: c.muted }}>CVV <span style={{ color: c.muted, fontWeight: "400", fontSize: "0.68rem" }}>(flip card)</span></label>
                   <input
-                    style={{ ...s.input, background: c.inputBg, border: `1.5px solid ${c.inputBorder}`, color: c.text, fontFamily: "monospace", letterSpacing: "0.2em" }}
-                    placeholder="•••" maxLength={3} value={card.cvv} inputMode="numeric"
-                    type="password"
-                    onChange={(e) => setCard({ ...card, cvv: e.target.value.replace(/\D/g, "").slice(0, 3) })} />
+                    style={{ ...s.input, background: c.inputBg, border: `1.5px solid ${card.cvv.length >= 3 ? "#22c55e" : cvvFocused ? "#d4235e" : c.inputBorder}`, color: c.text, fontFamily: "monospace", letterSpacing: "0.3em", textAlign: "center" }}
+                    placeholder="•••" maxLength={cardType === "amex" ? 4 : 3} value={card.cvv}
+                    inputMode="numeric" type="password"
+                    onFocus={() => setCvvFocused(true)}
+                    onBlur={() => setCvvFocused(false)}
+                    onChange={(e) => setCard({ ...card, cvv: e.target.value.replace(/\D/g, "").slice(0, cardType === "amex" ? 4 : 3) })} />
                 </div>
               </div>
 
               {error && <div style={s.errorBox}>⚠️ {error}</div>}
 
-              <button style={{ ...s.submitBtn, position: "relative", overflow: "hidden" }} type="submit" disabled={paying}>
-                {paying ? (
-                  <span style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "0.7rem" }}>
-                    <span style={{ width: "16px", height: "16px", border: "2px solid rgba(255,255,255,0.35)", borderTop: "2px solid white", borderRadius: "50%", display: "inline-block", animation: "spin 0.7s linear infinite" }} />
-                    Processing payment…
-                  </span>
-                ) : `Pay ₾${total.toFixed(2)} →`}
+              {/* Processing steps */}
+              {paying && (
+                <div style={{ background: isDark ? "rgba(255,255,255,0.04)" : "#f8f5ff", border: `1px solid ${isDark ? "rgba(255,255,255,0.08)" : "#e8e0f0"}`, borderRadius: "12px", padding: "0.9rem 1.1rem", marginBottom: "1rem" }}>
+                  {[["Connecting to bank…", 1], ["Authorizing payment…", 2], ["Confirming order…", 3]].map(([msg, n]) => (
+                    <div key={n} style={{ display: "flex", alignItems: "center", gap: "0.6rem", padding: "0.28rem 0", opacity: payStep >= n ? 1 : 0.3, transition: "opacity 0.3s" }}>
+                      {payStep > n ? (
+                        <span style={{ color: "#22c55e", fontSize: "0.9rem", width: "16px", flexShrink: 0 }}>✓</span>
+                      ) : payStep === n ? (
+                        <span style={{ width: "14px", height: "14px", border: "2px solid rgba(212,35,94,0.3)", borderTop: "2px solid #d4235e", borderRadius: "50%", display: "inline-block", animation: "spin 0.7s linear infinite", flexShrink: 0 }} />
+                      ) : (
+                        <span style={{ width: "16px", color: c.muted, fontSize: "0.7rem", flexShrink: 0 }}>○</span>
+                      )}
+                      <span style={{ color: payStep >= n ? c.text : c.muted, fontSize: "0.82rem", fontWeight: payStep === n ? "600" : "400" }}>{msg}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              <button style={{ ...s.submitBtn, background: paying ? "linear-gradient(135deg, #6b21a8, #4c1d95)" : "linear-gradient(135deg, #d4235e, #a01848)" }} type="submit" disabled={paying}>
+                {paying ? "Processing…" : `🔒 Pay ₾${total.toFixed(2)}`}
               </button>
 
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "0.4rem", marginTop: "0.6rem" }}>
-                <span style={{ fontSize: "0.7rem" }}>🔒</span>
-                <span style={{ color: c.muted, fontSize: "0.72rem" }}>Secured & encrypted — demo only, no real charge</span>
+              <div style={{ display: "flex", align: "center", justifyContent: "center", gap: "1rem", marginTop: "0.75rem" }}>
+                {[["🔒", "SSL Encrypted"], ["🛡️", "Secure"], ["✓", "Demo only"]].map(([icon, label]) => (
+                  <span key={label} style={{ color: c.muted, fontSize: "0.68rem", display: "flex", alignItems: "center", gap: "0.25rem" }}>
+                    <span>{icon}</span>{label}
+                  </span>
+                ))}
               </div>
             </form>
 
-            <button style={{ ...s.linkBtn, color: c.muted, display: "block", marginTop: "0.8rem" }} onClick={() => setStep(2)}>
+            <button style={{ ...s.linkBtn, color: c.muted, display: "block", marginTop: "0.9rem" }} onClick={() => setStep(2)}>
               ← Back
             </button>
           </div>

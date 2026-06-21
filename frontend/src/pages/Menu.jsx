@@ -4,6 +4,7 @@ import { useTheme } from "../context/ThemeContext";
 import Cart from "../components/Cart";
 import OrderForm from "../components/OrderForm";
 import AuthModal from "../components/AuthModal";
+import ProductModal from "../components/ProductModal";
 
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "";
 
@@ -21,6 +22,7 @@ export default function Menu() {
   const [addedIds, setAddedIds] = useState(new Set());
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState("all");
+  const [selectedProduct, setSelectedProduct] = useState(null);
 
   useEffect(() => {
     fetch(`${BACKEND_URL}/api/products`)
@@ -191,7 +193,7 @@ export default function Menu() {
                 <SectionHeader label="LIMITED TIME OFFER" title="🏷 On Sale" count={filtered.filter(p => p.sale_price).length} accent />
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: "1.8rem" }}>
                   {filtered.filter(p => p.sale_price).map((p) => (
-                    <ProductCard key={p.id} p={p} isDark={isDark} added={addedIds.has(p.id)} onAdd={() => addToCart(p)} />
+                    <ProductCard key={p.id} p={p} isDark={isDark} added={addedIds.has(p.id)} onAdd={() => addToCart(p)} onOpenModal={() => setSelectedProduct(p)} />
                   ))}
                 </div>
               </div>
@@ -205,7 +207,7 @@ export default function Menu() {
                 )}
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: "1.8rem" }}>
                   {filtered.filter(p => category !== "all" || !p.sale_price).map((p) => (
-                    <ProductCard key={p.id} p={p} isDark={isDark} added={addedIds.has(p.id)} onAdd={() => addToCart(p)} />
+                    <ProductCard key={p.id} p={p} isDark={isDark} added={addedIds.has(p.id)} onAdd={() => addToCart(p)} onOpenModal={() => setSelectedProduct(p)} />
                   ))}
                 </div>
               </div>
@@ -233,6 +235,14 @@ export default function Menu() {
           onSuccess={(code) => { setCart([]); setOrderOpen(false); setOrderCode(code); setOrderSuccess(true); }} />
       )}
       {authOpen && <AuthModal onClose={() => setAuthOpen(false)} onSuccess={() => setAuthOpen(false)} />}
+      {selectedProduct && (
+        <ProductModal
+          product={selectedProduct}
+          onClose={() => setSelectedProduct(null)}
+          onAdd={(p) => addToCart(p)}
+          alreadyAdded={addedIds.has(selectedProduct.id)}
+        />
+      )}
     </div>
   );
 }
@@ -254,7 +264,7 @@ function SectionHeader({ label, title, count, accent }) {
 }
 
 // ── Product Card ───────────────────────────────────────────────────────────────
-function ProductCard({ p, isDark, added, onAdd }) {
+function ProductCard({ p, isDark, added, onAdd, onOpenModal }) {
   const [hovered, setHovered] = useState(false);
   const isSale = !!p.sale_price;
 
@@ -262,6 +272,7 @@ function ProductCard({ p, isDark, added, onAdd }) {
     return (
       <div
         onMouseEnter={() => setHovered(true)} onMouseLeave={() => setHovered(false)}
+        onClick={onOpenModal}
         style={{ borderRadius: "24px", overflow: "hidden", cursor: "pointer", position: "relative", boxShadow: hovered ? "0 32px 72px rgba(0,0,0,0.38)" : isSale ? "0 8px 32px rgba(212,35,94,0.18)" : "0 4px 24px rgba(0,0,0,0.12)", transform: hovered ? "translateY(-10px) scale(1.01)" : "translateY(0) scale(1)", transition: "transform 0.35s ease, box-shadow 0.35s ease", outline: isSale ? "2px solid rgba(212,35,94,0.4)" : "none" }}
       >
         <div style={{ position: "relative", height: "310px" }}>
@@ -282,7 +293,7 @@ function ProductCard({ p, isDark, added, onAdd }) {
                 {isSale && <span style={{ color: "rgba(255,255,255,0.4)", fontSize: "0.88rem", textDecoration: "line-through", display: "block", lineHeight: 1 }}>₾{Number(p.price).toFixed(2)}</span>}
                 <span style={{ fontFamily: "'Playfair Display', serif", color: isSale ? "#ff8fab" : "white", fontWeight: "800", fontSize: "1.45rem" }}>₾{Number(p.sale_price || p.price).toFixed(2)}</span>
               </div>
-              <button onClick={onAdd}
+              <button onClick={(e) => { e.stopPropagation(); onAdd(); }}
                 style={{ background: added ? "#22c55e" : "rgba(212,35,94,0.95)", backdropFilter: "blur(10px)", color: "white", border: "none", padding: "0.6rem 1.4rem", borderRadius: "50px", cursor: "pointer", fontSize: "0.87rem", fontWeight: "700", transition: "all 0.22s", transform: hovered ? "scale(1.07)" : "scale(1)", boxShadow: added ? "0 4px 16px rgba(34,197,94,0.4)" : "0 4px 18px rgba(212,35,94,0.4)" }}>
                 {added ? "✓ Added!" : "+ Add"}
               </button>
@@ -296,7 +307,8 @@ function ProductCard({ p, isDark, added, onAdd }) {
   return (
     <div
       onMouseEnter={() => setHovered(true)} onMouseLeave={() => setHovered(false)}
-      style={{ background: "var(--bg-card)", borderRadius: "24px", overflow: "hidden", border: isSale ? "1.5px solid rgba(212,35,94,0.35)" : "1px solid var(--border)", boxShadow: hovered ? "0 24px 60px var(--shadow-md)" : isSale ? "0 6px 28px rgba(212,35,94,0.12)" : "0 4px 24px var(--shadow)", transform: hovered ? "translateY(-10px)" : "translateY(0)", transition: "transform 0.35s ease, box-shadow 0.35s ease" }}
+      onClick={onOpenModal}
+      style={{ background: "var(--bg-card)", borderRadius: "24px", overflow: "hidden", border: isSale ? "1.5px solid rgba(212,35,94,0.35)" : "1px solid var(--border)", boxShadow: hovered ? "0 24px 60px var(--shadow-md)" : isSale ? "0 6px 28px rgba(212,35,94,0.12)" : "0 4px 24px var(--shadow)", transform: hovered ? "translateY(-10px)" : "translateY(0)", transition: "transform 0.35s ease, box-shadow 0.35s ease", cursor: "pointer" }}
     >
       <div style={{ background: isSale ? (isDark ? "linear-gradient(135deg, rgba(212,35,94,0.15), rgba(100,20,50,0.25))" : "linear-gradient(135deg, #fff0f5, #ffc8da)") : (isDark ? "linear-gradient(135deg, rgba(212,35,94,0.07), rgba(100,20,50,0.14))" : "linear-gradient(135deg, #fff5f8, #ffe6ef)"), height: "190px", display: "flex", alignItems: "center", justifyContent: "center", position: "relative" }}>
         <span style={{ fontSize: "5rem", transition: "filter 0.3s, transform 0.3s", transform: hovered ? "scale(1.12)" : "scale(1)", filter: hovered ? "drop-shadow(0 12px 24px rgba(212,35,94,0.35))" : "none", display: "block" }}>{p.emoji}</span>
@@ -328,7 +340,7 @@ function ProductCard({ p, isDark, added, onAdd }) {
               <span style={{ color: "var(--text-faint)", fontSize: "0.75rem", marginLeft: "0.3rem", textDecoration: "line-through" }}>₾{Number(p.price).toFixed(2)}</span>
             )}
           </div>
-          <button onClick={onAdd}
+          <button onClick={(e) => { e.stopPropagation(); onAdd(); }}
             style={{ background: added ? "#22c55e" : "var(--accent)", color: "white", border: "none", padding: "0.65rem 1.4rem", borderRadius: "50px", cursor: "pointer", fontSize: "0.87rem", fontWeight: "700", transition: "all 0.22s", transform: hovered ? "scale(1.06)" : "scale(1)", boxShadow: added ? "0 4px 16px rgba(34,197,94,0.38)" : "0 4px 18px rgba(212,35,94,0.32)" }}>
             {added ? "✓ Added!" : "+ Add"}
           </button>
