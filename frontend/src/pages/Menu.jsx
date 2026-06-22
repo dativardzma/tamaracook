@@ -125,43 +125,58 @@ export default function Menu() {
       </header>
 
       {/* ── Hero ── */}
-      <div style={{ background: "linear-gradient(150deg, #1c0f18 0%, #2e1226 50%, #1c0f18 100%)", padding: "5rem 2rem 4rem", textAlign: "center", position: "relative", overflow: "hidden" }}>
-        <div style={{ position: "absolute", inset: 0, backgroundImage: "radial-gradient(circle, rgba(255,255,255,0.04) 1px, transparent 1px)", backgroundSize: "30px 30px" }} />
-        <div style={{ position: "absolute", width: "600px", height: "600px", top: "-250px", right: "-100px", borderRadius: "50%", background: "radial-gradient(circle, rgba(212,35,94,0.1) 0%, transparent 65%)", pointerEvents: "none" }} />
-        <div style={{ position: "absolute", width: "400px", height: "400px", bottom: "-180px", left: "-80px", borderRadius: "50%", background: "radial-gradient(circle, rgba(90,26,58,0.25) 0%, transparent 65%)", pointerEvents: "none" }} />
+      <div style={{ background: "linear-gradient(150deg, #1c0f18 0%, #38122a 40%, #2a0e20 70%, #1c0f18 100%)", padding: "4.5rem 2rem 3.5rem", textAlign: "center", position: "relative", overflow: "hidden" }}>
+        <div style={{ position: "absolute", inset: 0, backgroundImage: "radial-gradient(circle, rgba(255,255,255,0.04) 1px, transparent 1px)", backgroundSize: "26px 26px" }} />
+        <div style={{ position: "absolute", width: "700px", height: "700px", top: "-280px", right: "-120px", borderRadius: "50%", background: "radial-gradient(circle, rgba(212,35,94,0.12) 0%, transparent 65%)", pointerEvents: "none" }} />
+        <div style={{ position: "absolute", width: "500px", height: "500px", bottom: "-220px", left: "-100px", borderRadius: "50%", background: "radial-gradient(circle, rgba(90,26,58,0.3) 0%, transparent 65%)", pointerEvents: "none" }} />
+        <div style={{ position: "absolute", width: "300px", height: "300px", top: "40%", left: "50%", transform: "translate(-50%, -50%)", borderRadius: "50%", background: "radial-gradient(circle, rgba(212,35,94,0.06) 0%, transparent 70%)", pointerEvents: "none" }} />
+
+        {/* Floating emoji row */}
+        <div style={{ display: "flex", justifyContent: "center", gap: "1.2rem", marginBottom: "1.8rem", opacity: 0.25, fontSize: "1.6rem", userSelect: "none", pointerEvents: "none" }}>
+          {"🍰🎂🥐🍫🍪🍬🥧🧁".split("").filter(c => c.trim()).map((e, i) => (
+            <span key={i} style={{ display: "inline-block", animation: `float ${2.5 + i * 0.3}s ease-in-out ${i * 0.15}s infinite alternate` }}>{e}</span>
+          ))}
+        </div>
+
         <div style={{ position: "relative", zIndex: 1 }}>
-          <div style={{ display: "inline-flex", alignItems: "center", gap: "0.5rem", background: "rgba(212,35,94,0.12)", border: "1px solid rgba(212,35,94,0.28)", color: "#f4a3b8", borderRadius: "50px", padding: "0.4rem 1.2rem", fontSize: "0.7rem", fontWeight: "600", letterSpacing: "0.1em", marginBottom: "1.6rem" }}>
-            🌅 Baked Fresh Every Morning
+          <div style={{ display: "inline-flex", alignItems: "center", gap: "0.5rem", background: "rgba(212,35,94,0.12)", border: "1px solid rgba(212,35,94,0.28)", color: "#f4a3b8", borderRadius: "50px", padding: "0.4rem 1.2rem", fontSize: "0.7rem", fontWeight: "600", letterSpacing: "0.1em", marginBottom: "1.2rem" }}>
+            🌅 Baked Fresh Every Morning · {products.length} items
           </div>
-          <h1 style={{ fontFamily: "'Playfair Display', serif", color: "white", fontSize: "clamp(2.2rem, 5vw, 3.6rem)", fontWeight: "700", lineHeight: 1.12, marginBottom: "0.9rem" }}>
-            Our Menu
+          <h1 style={{ fontFamily: "'Playfair Display', serif", color: "white", fontSize: "clamp(2rem, 5vw, 3.2rem)", fontWeight: "700", lineHeight: 1.12, marginBottom: "0.7rem" }}>
+            Our Full Menu
           </h1>
-          <p style={{ color: "rgba(255,255,255,0.38)", fontSize: "0.97rem", maxWidth: "380px", margin: "0 auto 2.5rem", lineHeight: 1.7 }}>
-            Handcrafted with love in Tbilisi — choose your favourites and we'll bring them to your door.
+          <p style={{ color: "rgba(255,255,255,0.35)", fontSize: "0.93rem", maxWidth: "360px", margin: "0 auto 2rem", lineHeight: 1.75 }}>
+            Handcrafted with love in Tbilisi — pick your favourites and we'll bring them to your door.
           </p>
 
           {/* Search */}
-          <div style={{ maxWidth: "480px", margin: "0 auto 1.5rem", position: "relative" }}>
-            <span style={{ position: "absolute", left: "1.2rem", top: "50%", transform: "translateY(-50%)", fontSize: "0.95rem", pointerEvents: "none", opacity: 0.5 }}>🔍</span>
+          <div style={{ maxWidth: "500px", margin: "0 auto 1.8rem", position: "relative" }}>
+            <span style={{ position: "absolute", left: "1.2rem", top: "50%", transform: "translateY(-50%)", fontSize: "0.95rem", pointerEvents: "none", opacity: 0.4 }}>🔍</span>
             <input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search cakes, pastries, chocolates…"
-              style={{ width: "100%", padding: "0.9rem 1.2rem 0.9rem 3rem", borderRadius: "50px", border: "1px solid rgba(255,255,255,0.12)", background: "rgba(255,255,255,0.07)", color: "white", fontSize: "0.9rem", outline: "none", backdropFilter: "blur(10px)", boxSizing: "border-box", transition: "border-color 0.2s" }}
-              onFocus={e => e.target.style.borderColor = "rgba(212,35,94,0.5)"}
-              onBlur={e => e.target.style.borderColor = "rgba(255,255,255,0.12)"}
+              style={{ width: "100%", padding: "1rem 1.4rem 1rem 3.2rem", borderRadius: "50px", border: "1px solid rgba(255,255,255,0.1)", background: "rgba(255,255,255,0.07)", color: "white", fontSize: "0.9rem", outline: "none", backdropFilter: "blur(16px)", boxSizing: "border-box", transition: "border-color 0.2s, box-shadow 0.2s" }}
+              onFocus={e => { e.target.style.borderColor = "rgba(212,35,94,0.55)"; e.target.style.boxShadow = "0 0 0 3px rgba(212,35,94,0.1)"; }}
+              onBlur={e => { e.target.style.borderColor = "rgba(255,255,255,0.1)"; e.target.style.boxShadow = "none"; }}
             />
+            {search && (
+              <button onClick={() => setSearch("")} style={{ position: "absolute", right: "1.2rem", top: "50%", transform: "translateY(-50%)", background: "rgba(255,255,255,0.15)", border: "none", color: "white", width: "22px", height: "22px", borderRadius: "50%", cursor: "pointer", fontSize: "0.75rem", display: "flex", alignItems: "center", justifyContent: "center" }}>✕</button>
+            )}
           </div>
 
           {/* Category tabs */}
-          <div style={{ display: "flex", gap: "0.5rem", justifyContent: "center", flexWrap: "wrap", marginTop: "0.5rem" }}>
+          <div style={{ display: "flex", gap: "0.5rem", justifyContent: "center", flexWrap: "wrap" }}>
             {activeCats.map(({ key, icon, label }) => {
-              const active = category === key;
+              const isActive = category === key;
               const isSaleTab = key === "sale";
+              const count = key === "all" ? products.length : key === "sale" ? products.filter(p => p.sale_price).length : products.filter(p => p.category === key).length;
               return (
                 <button key={key} onClick={() => setCategory(key)}
-                  style={{ background: active ? (isSaleTab ? "linear-gradient(135deg, #d4235e, #a01848)" : "rgba(255,255,255,0.18)") : "rgba(255,255,255,0.06)", border: active ? (isSaleTab ? "none" : "1px solid rgba(255,255,255,0.3)") : "1px solid rgba(255,255,255,0.1)", color: "white", padding: "0.5rem 1.1rem", borderRadius: "50px", cursor: "pointer", fontSize: "0.82rem", fontWeight: active ? "700" : "400", transition: "all 0.2s", boxShadow: active && isSaleTab ? "0 4px 14px rgba(212,35,94,0.4)" : "none", display: "flex", alignItems: "center", gap: "0.35rem" }}>
-                  {icon} {label}
+                  style={{ background: isActive ? (isSaleTab ? "linear-gradient(135deg, #d4235e, #a01848)" : "rgba(255,255,255,0.16)") : "rgba(255,255,255,0.05)", border: isActive ? (isSaleTab ? "none" : "1px solid rgba(255,255,255,0.28)") : "1px solid rgba(255,255,255,0.08)", color: "white", padding: "0.52rem 1.15rem", borderRadius: "50px", cursor: "pointer", fontSize: "0.82rem", fontWeight: isActive ? "700" : "400", transition: "all 0.2s", boxShadow: isActive && isSaleTab ? "0 4px 16px rgba(212,35,94,0.45)" : "none", display: "flex", alignItems: "center", gap: "0.4rem" }}>
+                  <span>{icon}</span>
+                  <span>{label}</span>
+                  <span style={{ background: isActive ? "rgba(255,255,255,0.2)" : "rgba(255,255,255,0.08)", borderRadius: "50px", fontSize: "0.65rem", fontWeight: "700", padding: "0 5px", color: isActive ? "white" : "rgba(255,255,255,0.4)" }}>{count}</span>
                 </button>
               );
             })}

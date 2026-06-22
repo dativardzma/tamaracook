@@ -303,21 +303,21 @@ export default function Admin() {
             <div>
               <div style={s.statsGrid}>
                 {[
-                  { label: "Total Orders", value: orders.length, icon: "📋", sub: "all time", color: "#e3f2fd", accent: "#1565c0" },
-                  { label: "Pending", value: pendingOrders, icon: "⏳", sub: "need action", color: "#fff8e1", accent: "#e65100", alert: pendingOrders > 0 },
-                  { label: "Confirmed", value: confirmedOrders, icon: "✅", sub: "being prepared", color: "#e8f5e9", accent: "#2e7d32" },
-                  { label: "In Transit", value: inTransit, icon: "🚚", sub: "out for delivery", color: "#f3e5f5", accent: "#6a1b9a" },
-                  { label: "Revenue", value: `₾${totalRevenue.toFixed(0)}`, icon: "💰", sub: "total earned", color: "#fce4ec", accent: "#c62828" },
-                  { label: "Active Items", value: activeProducts, icon: "🍰", sub: "on the menu", color: "#fff3e0", accent: "#e65100" },
+                  { label: "Total Orders", value: orders.length, icon: "📋", sub: "all time", grad: "linear-gradient(135deg, #1a237e, #1565c0)", accent: "#1565c0" },
+                  { label: "Pending", value: pendingOrders, icon: "⏳", sub: "need action", grad: "linear-gradient(135deg, #e65100, #ff9800)", accent: "#e65100", alert: pendingOrders > 0 },
+                  { label: "Confirmed", value: confirmedOrders, icon: "✅", sub: "being prepared", grad: "linear-gradient(135deg, #1b5e20, #2e7d32)", accent: "#2e7d32" },
+                  { label: "In Transit", value: inTransit, icon: "🚚", sub: "out for delivery", grad: "linear-gradient(135deg, #4a148c, #6a1b9a)", accent: "#6a1b9a" },
+                  { label: "Revenue", value: `₾${totalRevenue.toFixed(0)}`, icon: "💰", sub: "total earned", grad: "linear-gradient(135deg, #d4235e, #a01848)", accent: "#d4235e", highlight: true },
+                  { label: "Active Items", value: activeProducts, icon: "🍰", sub: "on the menu", grad: "linear-gradient(135deg, #bf360c, #e64a19)", accent: "#e64a19" },
                 ].map((stat) => (
-                  <div key={stat.label} style={{ ...s.statCard, background: stat.alert ? "linear-gradient(135deg, #fff5f9, #fce4ef)" : "white", border: stat.alert ? "1.5px solid #f5c4d8" : "1px solid #f0eaf4" }}>
-                    <div style={{ ...s.statIconWrap, background: stat.color }}>
+                  <div key={stat.label} style={{ ...s.statCard, background: stat.alert ? "linear-gradient(135deg, #fff5f9, #fce4ef)" : stat.highlight ? "linear-gradient(135deg, #1c0f18, #2e1226)" : "white", border: stat.alert ? "1.5px solid #f5c4d8" : stat.highlight ? "1.5px solid rgba(212,35,94,0.25)" : "1px solid #f0eaf4" }}>
+                    <div style={{ ...s.statIconWrap, background: stat.grad, boxShadow: `0 4px 12px ${stat.accent}30` }}>
                       <span style={s.statIcon}>{stat.icon}</span>
                     </div>
                     <div>
-                      <div style={{ ...s.statValue, color: stat.accent }}>{stat.value}</div>
-                      <div style={s.statLabel}>{stat.label}</div>
-                      <div style={s.statSub}>{stat.sub}</div>
+                      <div style={{ ...s.statValue, color: stat.highlight ? "#f4a3b8" : stat.accent }}>{stat.value}</div>
+                      <div style={{ ...s.statLabel, color: stat.highlight ? "rgba(255,255,255,0.85)" : "#1c0f18" }}>{stat.label}</div>
+                      <div style={{ ...s.statSub, color: stat.highlight ? "rgba(255,255,255,0.35)" : "#8b6070" }}>{stat.sub}</div>
                     </div>
                   </div>
                 ))}
@@ -468,24 +468,29 @@ export default function Admin() {
               ) : (
                 <div style={s.productGrid}>
                   {products.map((p) => (
-                    <div key={p.id} style={{ ...s.productCard, opacity: p.available ? 1 : 0.6 }}
-                      onMouseEnter={e => { const ov = e.currentTarget.querySelector("[data-overlay]"); if (ov) ov.style.opacity = "1"; ov.style.background = "rgba(0,0,0,0.35)"; }}
-                      onMouseLeave={e => { const ov = e.currentTarget.querySelector("[data-overlay]"); if (ov) ov.style.opacity = "0"; ov.style.background = "rgba(0,0,0,0)"; }}
+                    <div key={p.id} style={{ ...s.productCard, opacity: p.available ? 1 : 0.55 }}
+                      onMouseEnter={e => { e.currentTarget.style.boxShadow = "0 12px 36px rgba(0,0,0,0.12)"; e.currentTarget.style.transform = "translateY(-3px)"; const ov = e.currentTarget.querySelector("[data-overlay]"); if (ov) { ov.style.opacity = "1"; ov.style.background = "rgba(0,0,0,0.38)"; } }}
+                      onMouseLeave={e => { e.currentTarget.style.boxShadow = "0 2px 12px rgba(0,0,0,0.06)"; e.currentTarget.style.transform = "translateY(0)"; const ov = e.currentTarget.querySelector("[data-overlay]"); if (ov) { ov.style.opacity = "0"; ov.style.background = "rgba(0,0,0,0)"; } }}
                     >
                       <div style={s.productImgWrap}>
                         {p.image_data
                           ? <img src={p.image_data} style={s.productImg} alt={p.name} />
                           : <span style={s.productEmoji}>{p.emoji}</span>
                         }
+                        {/* Sale badge */}
+                        {p.sale_price && (
+                          <div style={{ position: "absolute", top: "0.6rem", left: "0.6rem", background: "linear-gradient(135deg, #d4235e, #a01848)", color: "white", fontSize: "0.6rem", fontWeight: "800", padding: "0.18rem 0.6rem", borderRadius: "50px", letterSpacing: "0.06em", zIndex: 2 }}>🏷 SALE</div>
+                        )}
+                        {/* Unavailable overlay */}
+                        {!p.available && (
+                          <div style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.42)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                            <span style={{ background: "rgba(0,0,0,0.7)", color: "white", fontSize: "0.7rem", fontWeight: "700", padding: "0.3rem 0.8rem", borderRadius: "50px", letterSpacing: "0.05em" }}>HIDDEN</span>
+                          </div>
+                        )}
                         <div data-overlay="" style={s.photoOverlay}>
                           <label style={s.photoOverlayBtn}>
                             📷
-                            <input
-                              type="file"
-                              accept="image/*"
-                              style={{ display: "none" }}
-                              onChange={e => uploadProductImage(p.id, e.target.files[0])}
-                            />
+                            <input type="file" accept="image/*" style={{ display: "none" }} onChange={e => uploadProductImage(p.id, e.target.files[0])} />
                           </label>
                           {p.image_data && (
                             <button style={s.photoRemoveBtn} onClick={() => removeProductImage(p.id)}>✕</button>
@@ -494,15 +499,23 @@ export default function Admin() {
                       </div>
                       <div style={s.productInfo}>
                         <p style={s.productName}>{p.name}</p>
+                        {p.category && <span style={{ display: "inline-block", fontSize: "0.65rem", fontWeight: "600", color: "#8b6070", background: "#fdf0f5", borderRadius: "50px", padding: "0.15rem 0.55rem", marginBottom: "0.4rem" }}>{p.category}</span>}
                         {p.description && <p style={s.productDesc}>{p.description}</p>}
-                        <p style={s.productPrice}>₾{Number(p.price).toFixed(2)}</p>
-                        <div style={s.productStatusRow}>
-                          <span style={{ ...s.badge, background: p.available ? "#e8f5e9" : "#fce4ec", color: p.available ? "#2e7d32" : "#c62828" }}>
-                            {p.available ? "✓ Active" : "Hidden"}
-                          </span>
+                        <div style={{ display: "flex", alignItems: "baseline", gap: "0.4rem", marginBottom: "0.6rem" }}>
+                          {p.sale_price ? (
+                            <>
+                              <span style={{ ...s.productPrice, margin: 0 }}>₾{Number(p.sale_price).toFixed(2)}</span>
+                              <span style={{ color: "#b8a8b0", fontSize: "0.78rem", textDecoration: "line-through" }}>₾{Number(p.price).toFixed(2)}</span>
+                            </>
+                          ) : (
+                            <span style={{ ...s.productPrice, margin: 0 }}>₾{Number(p.price).toFixed(2)}</span>
+                          )}
                         </div>
                         <div style={s.productActions}>
-                          <button style={s.toggleBtn} onClick={() => toggleAvailable(p)}>{p.available ? "Hide" : "Show"}</button>
+                          <button
+                            style={{ flex: 1, padding: "0.4rem", background: p.available ? "#fce4ec" : "#e8f5e9", border: "none", borderRadius: "8px", cursor: "pointer", fontSize: "0.76rem", color: p.available ? "#c62828" : "#2e7d32", fontWeight: "600" }}
+                            onClick={() => toggleAvailable(p)}
+                          >{p.available ? "Hide" : "Show"}</button>
                           <button style={s.deleteBtn} onClick={() => deleteProduct(p.id)}>🗑️</button>
                         </div>
                       </div>
@@ -657,7 +670,7 @@ export default function Admin() {
                           <p style={s.teamEmail}>{u.email}</p>
                           <p style={s.teamDate}>Added {new Date(u.created_at).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })}</p>
                         </div>
-                        <span style={{ ...s.badge, background: "#e3f2fd", color: "#1565c0" }}>🚚 Delivery Staff</span>
+                        <span style={{ ...s.badge, background: "#fce4ec", color: "#c62828" }}>🚚 Delivery Staff</span>
                       </div>
                     ))}
                   </div>
@@ -808,7 +821,7 @@ const s = {
   cardAction: { background: "#f5eef2", border: "none", color: "#d4235e", fontWeight: "600", fontSize: "0.8rem", padding: "0.35rem 0.9rem", borderRadius: "8px", cursor: "pointer" },
 
   orderList: { display: "flex", flexDirection: "column", gap: "1rem" },
-  orderCard: { background: "#fdf8fb", borderRadius: "14px", padding: "1.2rem 1.4rem", border: "1px solid #f0eaf4" },
+  orderCard: { background: "white", borderRadius: "14px", padding: "1.2rem 1.4rem", border: "1px solid #f0eaf4", borderLeft: "4px solid #d4235e" },
   orderCardTop: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.6rem", flexWrap: "wrap", gap: "0.5rem" },
   orderCardLeft: { display: "flex", alignItems: "center", gap: "0.5rem", flexWrap: "wrap" },
   orderId: { fontWeight: "700", color: "#1c0f18", fontSize: "0.88rem" },
@@ -827,9 +840,9 @@ const s = {
 
   badge: { padding: "0.2rem 0.75rem", borderRadius: "50px", fontSize: "0.72rem", fontWeight: "600" },
 
-  productGrid: { display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(190px, 1fr))", gap: "1.2rem" },
-  productCard: { background: "#fdf6f2", borderRadius: "18px", overflow: "hidden", border: "1px solid #f0eaf4" },
-  productImgWrap: { position: "relative", background: "linear-gradient(135deg, #fff0f5, #ffdae8)", height: "160px", display: "flex", alignItems: "center", justifyContent: "center" },
+  productGrid: { display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: "1.3rem" },
+  productCard: { background: "white", borderRadius: "20px", overflow: "hidden", border: "1px solid #f0eaf4", boxShadow: "0 2px 12px rgba(0,0,0,0.06)", transition: "box-shadow 0.25s, transform 0.25s" },
+  productImgWrap: { position: "relative", background: "linear-gradient(135deg, #fff0f5, #ffdae8)", height: "175px", display: "flex", alignItems: "center", justifyContent: "center" },
   productImg: { width: "100%", height: "100%", objectFit: "cover" },
   productEmoji: { fontSize: "3.5rem" },
   photoOverlay: { position: "absolute", inset: 0, background: "rgba(0,0,0,0)", display: "flex", alignItems: "center", justifyContent: "center", gap: "0.5rem", opacity: 0, transition: "opacity 0.2s", cursor: "pointer" },
@@ -890,7 +903,7 @@ const s = {
   teamHintText: { color: "#5d4037", fontSize: "0.83rem", lineHeight: 1.6 },
   teamList: { display: "flex", flexDirection: "column", gap: "0.8rem" },
   teamRow: { display: "flex", alignItems: "center", gap: "1rem", padding: "0.9rem", background: "#fdf8fb", borderRadius: "12px", border: "1px solid #f0eaf4" },
-  teamAvatar: { width: "40px", height: "40px", borderRadius: "50%", background: "linear-gradient(135deg, #1d4ed8, #1e40af)", color: "white", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: "700", fontSize: "1rem", flexShrink: 0 },
+  teamAvatar: { width: "40px", height: "40px", borderRadius: "50%", background: "linear-gradient(135deg, #d4235e, #a01848)", color: "white", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: "700", fontSize: "1rem", flexShrink: 0 },
   teamEmail: { fontWeight: "600", color: "#1c0f18", fontSize: "0.88rem" },
   teamDate: { color: "#8b6070", fontSize: "0.74rem", marginTop: "0.1rem" },
 

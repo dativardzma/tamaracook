@@ -130,12 +130,13 @@ export default function Shop() {
             🇬🇪 Georgia's Premier Patisserie
           </div>
 
-          <h1 style={{ fontFamily: "'Playfair Display', serif", color: "white", fontSize: "clamp(2.6rem, 6vw, 4rem)", fontWeight: "700", lineHeight: 1.15, marginBottom: "1.4rem", animation: "fadeInUp 0.55s ease 0.1s both" }}>
+          <h1 style={{ fontFamily: "'Playfair Display', serif", color: "white", fontSize: "clamp(2.6rem, 6vw, 4.2rem)", fontWeight: "700", lineHeight: 1.12, marginBottom: "1.4rem", animation: "fadeInUp 0.55s ease 0.1s both" }}>
             Every bite tells<br />a <em style={{ color: "#f4a3b8", fontStyle: "italic" }}>sweet</em> story
           </h1>
 
-          <p style={{ color: "rgba(255,255,255,0.48)", fontSize: "1.05rem", lineHeight: 1.85, marginBottom: "2.8rem", animation: "fadeInUp 0.55s ease 0.2s both" }}>
-            Handcrafted cakes, pastries & confections baked fresh daily<br />from the finest local Georgian ingredients
+          <p style={{ color: "rgba(255,255,255,0.45)", fontSize: "1.05rem", lineHeight: 1.9, marginBottom: "2.8rem", animation: "fadeInUp 0.55s ease 0.2s both" }}>
+            Handcrafted cakes, pastries & confections baked fresh every morning<br />
+            <span style={{ color: "rgba(255,255,255,0.28)", fontSize: "0.92rem" }}>from the finest local Georgian ingredients — delivered to your door</span>
           </p>
 
           <div style={{ display: "flex", gap: "1rem", justifyContent: "center", flexWrap: "wrap", marginBottom: "4rem", animation: "fadeInUp 0.55s ease 0.3s both" }}>
@@ -171,6 +172,34 @@ export default function Shop() {
             { icon: "💝", title: "Handmade with Love", desc: "Traditional Georgian recipes, locally-sourced ingredients", color: "#e91e63" },
             { icon: "🎂", title: "Custom Orders", desc: "Birthdays, weddings, corporate events — we do it all", color: "#9c27b0" },
           ].map((f, i) => <FeatureCard key={f.title} f={f} hasBorder={i < 3} />)}
+        </div>
+      </section>
+
+      {/* ── How It Works ── */}
+      <section style={{ background: "var(--bg)", padding: "5rem 2rem" }}>
+        <div style={{ maxWidth: "900px", margin: "0 auto" }}>
+          <div style={{ textAlign: "center", marginBottom: "3.5rem" }}>
+            <p style={{ color: "var(--accent)", fontSize: "0.65rem", letterSpacing: "0.25em", fontWeight: "700", textTransform: "uppercase", marginBottom: "0.5rem" }}>SO SIMPLE</p>
+            <h2 style={{ fontFamily: "'Playfair Display', serif", fontSize: "clamp(1.5rem, 3vw, 2rem)", fontWeight: "700", color: "var(--text)" }}>Order in minutes, enjoy in hours</h2>
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "0", position: "relative" }}>
+            {[
+              { step: "1", icon: "🛒", title: "Browse & Add", desc: "Pick your favourites from our menu — cakes, pastries, chocolates and more." },
+              { step: "2", icon: "📱", title: "Verify & Pay", desc: "Confirm your email, then complete checkout. We keep it safe and simple." },
+              { step: "3", icon: "🍰", title: "We Bake for You", desc: "Your order heads straight to our kitchen — freshly prepared just for you." },
+              { step: "4", icon: "🚚", title: "Door Delivery", desc: "We deliver hot and fresh across Tbilisi, usually within 45–75 minutes." },
+            ].map((s2, i) => (
+              <div key={s2.step} style={{ textAlign: "center", padding: "0 1.5rem", position: "relative" }}>
+                {i < 3 && <div style={{ position: "absolute", top: "28px", right: "-1px", width: "50%", height: "2px", background: "linear-gradient(to right, var(--accent), transparent)", zIndex: 0, display: "none" }} />}
+                <div style={{ position: "relative", display: "inline-flex", marginBottom: "1.2rem" }}>
+                  <div style={{ width: "56px", height: "56px", borderRadius: "18px", background: "var(--bg-card)", border: "1.5px solid var(--border)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "1.7rem", position: "relative", zIndex: 1 }}>{s2.icon}</div>
+                  <div style={{ position: "absolute", top: "-8px", right: "-8px", width: "22px", height: "22px", borderRadius: "50%", background: "var(--accent)", color: "white", fontSize: "0.65rem", fontWeight: "800", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 2 }}>{s2.step}</div>
+                </div>
+                <h3 style={{ fontFamily: "'Playfair Display', serif", color: "var(--text)", fontWeight: "700", fontSize: "1rem", marginBottom: "0.5rem" }}>{s2.title}</h3>
+                <p style={{ color: "var(--text-muted)", fontSize: "0.82rem", lineHeight: 1.7 }}>{s2.desc}</p>
+              </div>
+            ))}
+          </div>
         </div>
       </section>
 
@@ -221,36 +250,61 @@ export default function Shop() {
 
       {/* ── About ── */}
       <section style={{ background: "var(--bg-card)", borderTop: "1px solid var(--border)", padding: "6rem 2rem" }} id="about-section">
-        <div style={{ maxWidth: "1280px", margin: "0 auto", display: "grid", gridTemplateColumns: "1fr 1fr", gap: "5rem", alignItems: "center" }}>
+        <div style={{ maxWidth: "1100px", margin: "0 auto", display: "grid", gridTemplateColumns: "1fr 1fr", gap: "5rem", alignItems: "center" }}>
           <div>
-            <p style={{ color: "var(--accent)", fontSize: "0.65rem", letterSpacing: "0.25em", fontWeight: "700", textTransform: "uppercase", marginBottom: "0.5rem" }}>OUR STORY</p>
-            <h2 style={{ fontFamily: "'Playfair Display', serif", fontSize: "clamp(1.65rem, 3vw, 2.3rem)", fontWeight: "700", color: "var(--text)", lineHeight: 1.25, marginBottom: "1.2rem" }}>Sweetness rooted<br />in Georgian tradition</h2>
+            <div style={{ display: "inline-flex", alignItems: "center", gap: "0.5rem", background: "var(--accent-light)", border: "1px solid var(--accent-ring)", color: "var(--accent)", borderRadius: "50px", padding: "0.4rem 1.1rem", fontSize: "0.72rem", fontWeight: "600", letterSpacing: "0.06em", marginBottom: "1.5rem" }}>🧁 OUR STORY</div>
+            <h2 style={{ fontFamily: "'Playfair Display', serif", fontSize: "clamp(1.65rem, 3vw, 2.3rem)", fontWeight: "700", color: "var(--text)", lineHeight: 1.25, marginBottom: "1rem" }}>Made with love,<br /><em style={{ color: "var(--accent)", fontStyle: "italic" }}>one batch at a time</em></h2>
             <div style={{ width: "48px", height: "3px", background: "var(--accent)", borderRadius: "2px", marginBottom: "1.6rem" }} />
             <p style={{ color: "var(--text-muted)", fontSize: "0.95rem", lineHeight: 1.9, marginBottom: "1rem" }}>
-              Founded with a deep love for Georgian confectionery, we blend time-honored family recipes with modern pastry techniques to create unforgettable sweets for every occasion.
+              A small, passionate home bakery in the heart of Tbilisi — we believe that real sweetness comes from real ingredients, real recipes, and real care.
             </p>
             <p style={{ color: "var(--text-muted)", fontSize: "0.95rem", lineHeight: 1.9, marginBottom: "1.8rem" }}>
-              Each product is crafted in small batches to ensure the highest quality, freshness, and care in every single bite.
+              Every cake, every pastry, every chocolate is made in small batches to order. No mass production, no shortcuts — just honest, homemade baking that you can taste in every bite.
             </p>
-            <div style={{ display: "flex", flexWrap: "wrap", gap: "0.6rem" }}>
-              {["100% Homemade", "Local Ingredients", "No Preservatives", "Same-Day Delivery"].map(t => (
-                <span key={t} style={{ background: "var(--accent-light)", color: "var(--accent)", border: "1px solid var(--accent-ring)", fontSize: "0.77rem", fontWeight: "600", padding: "0.38rem 0.95rem", borderRadius: "50px" }}>✓ {t}</span>
+            <div style={{ display: "flex", flexDirection: "column", gap: "0.7rem", marginBottom: "1.8rem" }}>
+              {[
+                ["🌱", "Made only with local Georgian ingredients"],
+                ["🚫", "Zero preservatives or artificial flavours"],
+                ["📦", "Baked to order — never pre-made or frozen"],
+                ["❤️", "Every item personally crafted with care"],
+              ].map(([icon, text]) => (
+                <div key={text} style={{ display: "flex", alignItems: "center", gap: "0.8rem" }}>
+                  <span style={{ width: "28px", height: "28px", background: "var(--accent-light)", borderRadius: "8px", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "0.9rem", flexShrink: 0 }}>{icon}</span>
+                  <span style={{ color: "var(--text-muted)", fontSize: "0.87rem" }}>{text}</span>
+                </div>
               ))}
             </div>
           </div>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem" }}>
-            {[
-              { icon: "🍰", label: "Layer Cakes", desc: "Celebration cakes for every occasion" },
-              { icon: "🥐", label: "Pastries", desc: "Flaky, buttery, baked fresh daily" },
-              { icon: "🍫", label: "Chocolates", desc: "Hand-dipped truffles & bonbons" },
-              { icon: "🎂", label: "Custom Orders", desc: "Weddings, birthdays, events" },
-            ].map((sp) => (
-              <div key={sp.label} style={{ background: "var(--bg-muted)", border: "1px solid var(--border)", borderRadius: "20px", padding: "1.6rem 1.4rem", textAlign: "center" }}>
-                <span style={{ fontSize: "2.2rem", display: "block", marginBottom: "0.7rem" }}>{sp.icon}</span>
-                <p style={{ fontFamily: "'Playfair Display', serif", fontWeight: "700", fontSize: "0.95rem", color: "var(--text)", marginBottom: "0.35rem" }}>{sp.label}</p>
-                <p style={{ color: "var(--text-muted)", fontSize: "0.76rem", lineHeight: 1.55 }}>{sp.desc}</p>
+          <div>
+            {/* Quote card */}
+            <div style={{ background: "linear-gradient(135deg, #1c0f18, #2e1226)", borderRadius: "24px", padding: "2rem 2rem 1.8rem", marginBottom: "1.2rem", position: "relative", overflow: "hidden" }}>
+              <div style={{ position: "absolute", top: "-30px", right: "-30px", width: "120px", height: "120px", borderRadius: "50%", background: "radial-gradient(circle, rgba(212,35,94,0.2) 0%, transparent 70%)", pointerEvents: "none" }} />
+              <div style={{ fontSize: "2.5rem", color: "rgba(212,35,94,0.4)", lineHeight: 1, marginBottom: "0.5rem" }}>"</div>
+              <p style={{ fontFamily: "'Playfair Display', serif", color: "rgba(255,255,255,0.85)", fontSize: "1.05rem", lineHeight: 1.7, fontStyle: "italic", marginBottom: "1.2rem" }}>
+                I bake because I love seeing people's faces when they take that first bite. That moment of joy — that's why I do this.
+              </p>
+              <div style={{ display: "flex", alignItems: "center", gap: "0.8rem" }}>
+                <div style={{ width: "36px", height: "36px", borderRadius: "50%", background: "linear-gradient(135deg, #d4235e, #a01848)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "1rem" }}>👩‍🍳</div>
+                <div>
+                  <div style={{ color: "white", fontWeight: "600", fontSize: "0.85rem" }}>Tamuna</div>
+                  <div style={{ color: "rgba(212,35,94,0.7)", fontSize: "0.7rem" }}>Baker & Founder</div>
+                </div>
               </div>
-            ))}
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.8rem" }}>
+              {[
+                { icon: "🍰", label: "Layer Cakes", desc: "For every celebration" },
+                { icon: "🥐", label: "Pastries", desc: "Fresh every morning" },
+                { icon: "🍫", label: "Chocolates", desc: "Hand-crafted truffles" },
+                { icon: "🎂", label: "Custom Orders", desc: "Weddings & events" },
+              ].map((sp) => (
+                <div key={sp.label} style={{ background: "var(--bg-muted)", border: "1px solid var(--border)", borderRadius: "16px", padding: "1.2rem", textAlign: "center" }}>
+                  <span style={{ fontSize: "1.8rem", display: "block", marginBottom: "0.5rem" }}>{sp.icon}</span>
+                  <p style={{ fontFamily: "'Playfair Display', serif", fontWeight: "700", fontSize: "0.88rem", color: "var(--text)", marginBottom: "0.2rem" }}>{sp.label}</p>
+                  <p style={{ color: "var(--text-muted)", fontSize: "0.72rem" }}>{sp.desc}</p>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       </section>
@@ -361,22 +415,47 @@ export default function Shop() {
       {orderSuccess && (
         <div style={os.overlay} onClick={() => setOrderSuccess(false)}>
           <div style={os.modal} className="animate-scaleIn" onClick={e => e.stopPropagation()}>
-            <div style={os.iconRing}><span style={{ fontSize: "2.6rem" }}>🎉</span></div>
+            {/* Floating emojis decoration */}
+            <div style={{ display: "flex", justifyContent: "center", gap: "1rem", marginBottom: "1.2rem" }}>
+              {["🎂", "🍰", "🥐", "🎉"].map((e, i) => (
+                <span key={i} style={{ fontSize: "1.4rem", opacity: 0.4, display: "inline-block", animation: `float ${2 + i * 0.3}s ease-in-out ${i * 0.2}s infinite alternate` }}>{e}</span>
+              ))}
+            </div>
+
+            <div style={os.iconRing}>
+              <span style={{ fontSize: "2.8rem" }}>🎉</span>
+            </div>
+
             <h2 style={os.title}>Order Placed!</h2>
-            <p style={os.sub}>Your order is confirmed. We'll be in touch shortly!</p>
+            <p style={os.sub}>Your order is confirmed — we'll call you to verify within a few minutes.</p>
+
             {orderCode && (
               <div style={os.codeSection}>
                 <p style={os.codeLabel}>YOUR ORDER CODE</p>
                 <div style={os.code}>{orderCode}</div>
-                <p style={os.codeHint}>Screenshot this to track your order</p>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "0.4rem" }}>
+                  <span style={{ fontSize: "0.8rem" }}>📸</span>
+                  <p style={os.codeHint}>Screenshot this code to track your order</p>
+                </div>
               </div>
             )}
+
             <div style={os.tips}>
-              <div style={os.tip}>📞 We'll call to confirm within minutes</div>
-              <div style={os.tip}>🚚 Estimated delivery: 45–75 minutes</div>
-              <div style={os.tip}>🍰 Your treats are being freshly prepared</div>
+              {[
+                ["📞", "We'll call to confirm within minutes"],
+                ["🚚", "Estimated delivery: 45–75 minutes"],
+                ["🍰", "Your treats are being freshly prepared"],
+              ].map(([icon, text]) => (
+                <div key={text} style={{ display: "flex", alignItems: "center", gap: "0.65rem" }}>
+                  <span style={{ width: "30px", height: "30px", borderRadius: "50%", background: "rgba(212,35,94,0.08)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "0.9rem", flexShrink: 0 }}>{icon}</span>
+                  <span style={os.tip}>{text}</span>
+                </div>
+              ))}
             </div>
-            <button style={os.closeBtn} onClick={() => setOrderSuccess(false)}>All Good! 🎉</button>
+
+            <button style={os.closeBtn} onClick={() => setOrderSuccess(false)}>
+              All Done! 🎉
+            </button>
           </div>
         </div>
       )}
@@ -389,14 +468,16 @@ function FeatureCard({ f, hasBorder }) {
   const [hovered, setHovered] = useState(false);
   return (
     <div
-      style={{ padding: "2.4rem 2rem", textAlign: "center", borderRight: hasBorder ? "1px solid var(--border)" : "none", transition: "background 0.2s", background: hovered ? "var(--bg-muted)" : "transparent" }}
+      style={{ padding: "2.4rem 2rem", textAlign: "center", borderRight: hasBorder ? "1px solid var(--border)" : "none", transition: "background 0.25s, transform 0.25s", background: hovered ? "var(--bg-muted)" : "transparent", position: "relative", overflow: "hidden" }}
       onMouseEnter={() => setHovered(true)} onMouseLeave={() => setHovered(false)}
     >
-      <div style={{ width: "56px", height: "56px", borderRadius: "18px", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "1.6rem", margin: "0 auto 1rem", background: `${f.color}18`, border: `1px solid ${f.color}28`, transition: "transform 0.25s", transform: hovered ? "scale(1.1)" : "scale(1)" }}>
+      {/* Colored top accent line on hover */}
+      <div style={{ position: "absolute", top: 0, left: "50%", transform: `translateX(-50%) scaleX(${hovered ? 1 : 0})`, width: "48px", height: "3px", background: f.color, borderRadius: "0 0 3px 3px", transition: "transform 0.3s" }} />
+      <div style={{ width: "60px", height: "60px", borderRadius: "18px", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "1.7rem", margin: "0 auto 1.1rem", background: `${f.color}15`, border: `1.5px solid ${f.color}25`, transition: "transform 0.3s, box-shadow 0.3s", transform: hovered ? "scale(1.1) translateY(-2px)" : "scale(1)", boxShadow: hovered ? `0 8px 24px ${f.color}25` : "none" }}>
         {f.icon}
       </div>
-      <h3 style={{ fontFamily: "'Playfair Display', serif", fontSize: "0.97rem", fontWeight: "700", color: "var(--text)", marginBottom: "0.5rem" }}>{f.title}</h3>
-      <p style={{ color: "var(--text-muted)", fontSize: "0.8rem", lineHeight: 1.65 }}>{f.desc}</p>
+      <h3 style={{ fontFamily: "'Playfair Display', serif", fontSize: "1rem", fontWeight: "700", color: "var(--text)", marginBottom: "0.5rem" }}>{f.title}</h3>
+      <p style={{ color: "var(--text-muted)", fontSize: "0.8rem", lineHeight: 1.7 }}>{f.desc}</p>
     </div>
   );
 }
@@ -503,16 +584,16 @@ const s = {
 };
 
 const os = {
-  overlay: { position: "fixed", inset: 0, background: "rgba(0,0,0,0.78)", zIndex: 400, display: "flex", alignItems: "center", justifyContent: "center", backdropFilter: "blur(10px)", padding: "1rem" },
-  modal: { background: "white", borderRadius: "30px", padding: "2.8rem 2.2rem", width: "100%", maxWidth: "420px", textAlign: "center", boxShadow: "0 40px 100px rgba(0,0,0,0.45)" },
-  iconRing: { width: "90px", height: "90px", borderRadius: "50%", background: "linear-gradient(135deg, #fef3c7, #fde68a)", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 1.4rem", animation: "float 2.5s ease-in-out infinite" },
-  title: { fontFamily: "'Playfair Display', serif", color: "#1c0f18", fontSize: "1.9rem", fontWeight: "700", marginBottom: "0.5rem" },
-  sub: { color: "#8b6070", fontSize: "0.9rem", marginBottom: "1.8rem", lineHeight: 1.6 },
-  codeSection: { background: "linear-gradient(135deg, #1c0f18, #3a1430)", borderRadius: "20px", padding: "1.5rem 1.7rem", marginBottom: "1.5rem" },
-  codeLabel: { color: "rgba(255,255,255,0.4)", fontSize: "0.6rem", fontWeight: "700", letterSpacing: "0.22em", textTransform: "uppercase", marginBottom: "0.65rem" },
-  code: { fontFamily: "monospace", color: "white", fontSize: "2.6rem", fontWeight: "900", letterSpacing: "0.3em", marginBottom: "0.5rem", animation: "codePop 0.5s ease both" },
-  codeHint: { color: "rgba(255,255,255,0.35)", fontSize: "0.73rem" },
-  tips: { display: "flex", flexDirection: "column", gap: "0.55rem", background: "#fdf6f2", borderRadius: "16px", padding: "1.1rem 1.3rem", marginBottom: "1.7rem", textAlign: "left" },
-  tip: { color: "#6b4c58", fontSize: "0.83rem", lineHeight: 1.5 },
-  closeBtn: { width: "100%", background: "linear-gradient(135deg, #d4235e, #a01848)", color: "white", border: "none", padding: "1rem", borderRadius: "14px", fontSize: "0.96rem", fontWeight: "700", cursor: "pointer" },
+  overlay: { position: "fixed", inset: 0, background: "rgba(0,0,0,0.82)", zIndex: 400, display: "flex", alignItems: "center", justifyContent: "center", backdropFilter: "blur(12px)", padding: "1rem" },
+  modal: { background: "white", borderRadius: "30px", padding: "2.4rem 2.2rem 2.8rem", width: "100%", maxWidth: "420px", textAlign: "center", boxShadow: "0 50px 120px rgba(0,0,0,0.55), 0 0 0 1px rgba(255,255,255,0.06)" },
+  iconRing: { width: "88px", height: "88px", borderRadius: "50%", background: "linear-gradient(135deg, #fff3e0, #ffe0b2)", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 1.2rem", boxShadow: "0 10px 30px rgba(255,152,0,0.25)", animation: "float 2.5s ease-in-out infinite" },
+  title: { fontFamily: "'Playfair Display', serif", color: "#1c0f18", fontSize: "1.85rem", fontWeight: "700", marginBottom: "0.45rem" },
+  sub: { color: "#8b6070", fontSize: "0.88rem", marginBottom: "1.6rem", lineHeight: 1.7 },
+  codeSection: { background: "linear-gradient(135deg, #1c0f18, #3a1430)", borderRadius: "20px", padding: "1.4rem 1.6rem", marginBottom: "1.4rem" },
+  codeLabel: { color: "rgba(255,255,255,0.35)", fontSize: "0.58rem", fontWeight: "700", letterSpacing: "0.22em", textTransform: "uppercase", marginBottom: "0.6rem" },
+  code: { fontFamily: "monospace", color: "white", fontSize: "2.8rem", fontWeight: "900", letterSpacing: "0.3em", marginBottom: "0.55rem", animation: "codePop 0.5s ease both" },
+  codeHint: { color: "rgba(255,255,255,0.3)", fontSize: "0.72rem", margin: 0 },
+  tips: { display: "flex", flexDirection: "column", gap: "0.7rem", background: "#fdf6f2", borderRadius: "16px", padding: "1.1rem 1.2rem", marginBottom: "1.6rem", textAlign: "left" },
+  tip: { color: "#6b4c58", fontSize: "0.82rem", lineHeight: 1.5, margin: 0 },
+  closeBtn: { width: "100%", background: "linear-gradient(135deg, #d4235e, #a01848)", color: "white", border: "none", padding: "1rem", borderRadius: "14px", fontSize: "0.96rem", fontWeight: "700", cursor: "pointer", boxShadow: "0 6px 20px rgba(212,35,94,0.35)" },
 };
