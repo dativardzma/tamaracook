@@ -126,14 +126,8 @@ export default function Shop() {
         <div style={{ position: "absolute", width: "500px", height: "500px", bottom: "-150px", left: "-100px", borderRadius: "50%", background: "radial-gradient(circle, rgba(90,26,58,0.35) 0%, transparent 68%)", pointerEvents: "none" }} />
 
         <div style={{ maxWidth: "740px", margin: "0 auto", position: "relative", zIndex: 1 }}>
-          {/* Social proof bar */}
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "0.6rem", marginBottom: "1.8rem", animation: "fadeInUp 0.5s ease both", flexWrap: "wrap" }}>
-            <div style={{ display: "inline-flex", alignItems: "center", gap: "0.5rem", background: "rgba(212,35,94,0.15)", border: "1px solid rgba(212,35,94,0.32)", color: "#f4a3b8", borderRadius: "50px", padding: "0.45rem 1.2rem", fontSize: "0.74rem", fontWeight: "600", letterSpacing: "0.04em" }}>
-              ⭐⭐⭐⭐⭐ &nbsp;Loved by 500+ customers
-            </div>
-            <div style={{ display: "inline-flex", alignItems: "center", gap: "0.4rem", background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)", color: "rgba(255,255,255,0.6)", borderRadius: "50px", padding: "0.45rem 1.1rem", fontSize: "0.74rem" }}>
-              🇬🇪 Tbilisi · Est. 2021
-            </div>
+          <div style={{ display: "inline-flex", alignItems: "center", gap: "0.5rem", background: "rgba(212,35,94,0.15)", border: "1px solid rgba(212,35,94,0.32)", color: "#f4a3b8", borderRadius: "50px", padding: "0.45rem 1.3rem", fontSize: "0.74rem", fontWeight: "600", letterSpacing: "0.06em", marginBottom: "2rem", animation: "fadeInUp 0.5s ease both" }}>
+            🇬🇪 Homemade in Tbilisi · Est. 2021
           </div>
 
           <h1 style={{ fontFamily: "'Playfair Display', serif", color: "white", fontSize: "clamp(2.6rem, 6vw, 4.2rem)", fontWeight: "700", lineHeight: 1.12, marginBottom: "1.4rem", animation: "fadeInUp 0.55s ease 0.1s both" }}>
@@ -159,18 +153,9 @@ export default function Shop() {
             >Our Story →</button>
           </div>
 
-          {/* Stats row */}
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "0", flexWrap: "wrap", animation: "fadeInUp 0.55s ease 0.4s both", background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: "18px", padding: "1rem 2rem", maxWidth: "560px", margin: "0 auto" }}>
-            {[
-              ["500+", "Happy Customers"],
-              ["2,000+", "Orders Delivered"],
-              ["4.9★", "Average Rating"],
-              ["100%", "Homemade"],
-            ].map(([num, label], i) => (
-              <div key={label} style={{ flex: "1", textAlign: "center", padding: "0 0.8rem", borderRight: i < 3 ? "1px solid rgba(255,255,255,0.1)" : "none", minWidth: "80px" }}>
-                <div style={{ fontFamily: "'Playfair Display', serif", color: "white", fontWeight: "700", fontSize: "1.15rem", lineHeight: 1 }}>{num}</div>
-                <div style={{ color: "rgba(255,255,255,0.35)", fontSize: "0.65rem", marginTop: "3px", letterSpacing: "0.03em" }}>{label}</div>
-              </div>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "1.5rem", flexWrap: "wrap", animation: "fadeInUp 0.55s ease 0.4s both" }}>
+            {["🌅 Baked Every Morning", "🚚 Tbilisi Delivery", "💝 100% Homemade", "🎂 Custom Orders"].map((tag) => (
+              <span key={tag} style={{ color: "rgba(255,255,255,0.45)", fontSize: "0.78rem", letterSpacing: "0.04em" }}>{tag}</span>
             ))}
           </div>
         </div>
@@ -260,38 +245,6 @@ export default function Shop() {
           </div>
         )}
       </main>
-
-      {/* ── Testimonials ── */}
-      <section style={{ background: "var(--bg-card)", borderTop: "1px solid var(--border)", padding: "5rem 2rem" }}>
-        <div style={{ maxWidth: "1100px", margin: "0 auto" }}>
-          <div style={{ textAlign: "center", marginBottom: "3.5rem" }}>
-            <p style={{ color: "var(--accent)", fontSize: "0.65rem", letterSpacing: "0.25em", fontWeight: "700", textTransform: "uppercase", marginBottom: "0.5rem" }}>WHAT PEOPLE SAY</p>
-            <h2 style={{ fontFamily: "'Playfair Display', serif", fontSize: "clamp(1.5rem, 3vw, 2rem)", fontWeight: "700", color: "var(--text)" }}>Our customers say it best</h2>
-          </div>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: "1.5rem" }}>
-            {[
-              { name: "Nino Kvaratskhelia", location: "Vake, Tbilisi", review: "The birthday cake was absolutely stunning — everyone at the party couldn't believe it was homemade. Ordered for the second time already, will not stop! 🎂", rating: 5, order: "Custom Birthday Cake" },
-              { name: "Mariam Gabaidze", location: "Saburtalo, Tbilisi", review: "I've been ordering every week for three months. The pastries are better than any café in the city. Fresh, real ingredients — you taste the difference immediately.", rating: 5, order: "Weekly Pastry Box" },
-              { name: "Khatia Ioseliani", location: "Vera, Tbilisi", review: "Ordered chocolate truffles for the office. They disappeared in under 10 minutes. My colleagues are already asking me for the contact number! 🍫", rating: 5, order: "Chocolate Truffles" },
-            ].map((t) => (
-              <div key={t.name} style={{ background: "var(--bg)", border: "1px solid var(--border)", borderRadius: "20px", padding: "1.8rem", position: "relative" }}>
-                <div style={{ position: "absolute", top: "1.4rem", right: "1.6rem", fontSize: "2rem", color: "var(--accent)", opacity: 0.15, fontFamily: "serif", lineHeight: 1 }}>"</div>
-                <div style={{ display: "flex", gap: "0.3rem", marginBottom: "1rem" }}>
-                  {"⭐".repeat(t.rating).split("").map((s, i) => <span key={i} style={{ fontSize: "0.85rem" }}>⭐</span>)}
-                </div>
-                <p style={{ color: "var(--text)", fontSize: "0.92rem", lineHeight: 1.75, marginBottom: "1.4rem", fontStyle: "italic" }}>"{t.review}"</p>
-                <div style={{ display: "flex", alignItems: "center", gap: "0.8rem" }}>
-                  <div style={{ width: "38px", height: "38px", borderRadius: "50%", background: "linear-gradient(135deg, #d4235e, #a01848)", display: "flex", alignItems: "center", justifyContent: "center", color: "white", fontWeight: "700", fontSize: "0.9rem", flexShrink: 0 }}>{t.name[0]}</div>
-                  <div>
-                    <div style={{ fontWeight: "700", fontSize: "0.85rem", color: "var(--text)" }}>{t.name}</div>
-                    <div style={{ color: "var(--text-muted)", fontSize: "0.72rem" }}>{t.location} · {t.order}</div>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
 
       {/* ── Instagram CTA ── */}
       <section style={{ background: "linear-gradient(135deg, #1c0f18 0%, #2a0e20 100%)", padding: "4rem 2rem", borderTop: "1px solid rgba(255,255,255,0.05)" }}>
