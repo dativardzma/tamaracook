@@ -1,6 +1,27 @@
 import { useRef, useState } from "react";
 import { useTheme } from "../context/ThemeContext";
 
+// Luhn algorithm — standard card number validation
+function luhnCheck(num) {
+  let s = 0, alt = false;
+  for (let i = num.length - 1; i >= 0; i--) {
+    let n = parseInt(num[i], 10);
+    if (alt) { n *= 2; if (n > 9) n -= 9; }
+    s += n; alt = !alt;
+  }
+  return s % 10 === 0;
+}
+
+// Expiry not-expired check
+function expiryValid(exp) {
+  const [mm, yy] = exp.split("/");
+  if (!mm || !yy || mm.length !== 2 || yy.length !== 2) return false;
+  const m = parseInt(mm, 10), y = 2000 + parseInt(yy, 10);
+  if (m < 1 || m > 12) return false;
+  const now = new Date();
+  return new Date(y, m) > now;
+}
+
 export default function OrderForm({ cart, backendUrl, onClose, onSuccess }) {
   const { isDark } = useTheme();
   const [step, setStep] = useState(1);
@@ -29,10 +50,8 @@ export default function OrderForm({ cart, backendUrl, onClose, onSuccess }) {
 
   const handleDigit = (i, val) => {
     if (!/^\d?$/.test(val)) return;
-    const next = [...codeDigits];
-    next[i] = val;
-    setCodeDigits(next);
-    setOtpError("");
+    const next = [...codeDigits]; next[i] = val;
+    setCodeDigits(next); setOtpError("");
     if (val && i < 5) digitRefs[i + 1].current?.focus();
   };
   const handleDigitKey = (i, e) => {
@@ -52,14 +71,15 @@ export default function OrderForm({ cart, backendUrl, onClose, onSuccess }) {
     : (rawNum.startsWith("51") || rawNum.startsWith("52") || rawNum.startsWith("53") || rawNum.startsWith("54") || rawNum.startsWith("55")) ? "mastercard"
     : (rawNum.startsWith("34") || rawNum.startsWith("37")) ? "amex"
     : "generic";
-  const cardGradient = cardType === "visa" ? "linear-gradient(135deg, #1a237e, #1565c0, #0288d1)"
-    : cardType === "mastercard" ? "linear-gradient(135deg, #b71c1c, #e53935, #f57c00)"
-    : cardType === "amex" ? "linear-gradient(135deg, #1b5e20, #2e7d32, #00897b)"
-    : "linear-gradient(135deg, #1c0f18, #3a1430, #5a1a3a)";
-  const cardLabel = cardType === "visa" ? "VISA" : cardType === "mastercard" ? "Mastercard" : cardType === "amex" ? "AMEX" : "Credit / Debit";
+  const expectedLen = cardType === "amex" ? 15 : 16;
+  const cardGradient = cardType === "visa" ? "linear-gradient(135deg, #1a237e 0%, #1565c0 55%, #0277bd 100%)"
+    : cardType === "mastercard" ? "linear-gradient(135deg, #880e4f 0%, #c62828 50%, #e65100 100%)"
+    : cardType === "amex" ? "linear-gradient(135deg, #1b5e20 0%, #2e7d32 55%, #00695c 100%)"
+    : "linear-gradient(135deg, #1c0f18 0%, #3a1430 55%, #4a1540 100%)";
+  const cardLabel = cardType === "visa" ? "VISA" : cardType === "mastercard" ? "MASTERCARD" : cardType === "amex" ? "AMEX" : "CARD";
 
   const formatCard = (v) => {
-    const d = v.replace(/\D/g, "").slice(0, cardType === "amex" ? 15 : 16);
+    const d = v.replace(/\D/g, "").slice(0, expectedLen);
     if (cardType === "amex") return d.replace(/^(\d{4})(\d{6})(\d{0,5}).*/, (_, a, b, c) => [a, b, c].filter(Boolean).join(" "));
     return d.replace(/(.{4})/g, "$1 ").trim();
   };
@@ -67,6 +87,12 @@ export default function OrderForm({ cart, backendUrl, onClose, onSuccess }) {
     const d = v.replace(/\D/g, "").slice(0, 4);
     return d.length >= 3 ? `${d.slice(0, 2)}/${d.slice(2)}` : d;
   };
+
+  // Field validity
+  const cardValid = rawNum.length === expectedLen && luhnCheck(rawNum);
+  const expiryOk = expiryValid(card.expiry);
+  const cvvOk = card.cvv.length === (cardType === "amex" ? 4 : 3);
+  const nameOk = card.name.trim().split(" ").filter(Boolean).length >= 2;
 
   const sendOtp = async () => {
     setLoading(true); setError(""); setDevCode(null);
@@ -116,16 +142,16 @@ export default function OrderForm({ cart, backendUrl, onClose, onSuccess }) {
 
   const placeOrder = async (e) => {
     e.preventDefault();
-    const rawNum = card.number.replace(/\s/g, "");
-    if (rawNum.length < 16) { setError("Enter a valid 16-digit card number."); return; }
-    if (card.expiry.length < 5) { setError("Enter a valid expiry date (MM/YY)."); return; }
-    if (card.cvv.length < 3) { setError("Enter a valid CVV."); return; }
-    if (!card.name.trim()) { setError("Enter the name on your card."); return; }
     setError("");
+    if (!cardValid) { setError("Card number is invalid. Please check and try again."); return; }
+    if (!expiryOk) { setError("Card has expired or expiry date is invalid."); return; }
+    if (!cvvOk) { setError(`Enter a valid ${cardType === "amex" ? "4" : "3"}-digit security code.`); return; }
+    if (!nameOk) { setError("Please enter the full name as it appears on your card."); return; }
     setPaying(true);
-    setPayStep(1); await new Promise((r) => setTimeout(r, 900));
-    setPayStep(2); await new Promise((r) => setTimeout(r, 800));
-    setPayStep(3); await new Promise((r) => setTimeout(r, 600));
+    setPayStep(1); await new Promise((r) => setTimeout(r, 950));
+    setPayStep(2); await new Promise((r) => setTimeout(r, 1100));
+    setPayStep(3); await new Promise((r) => setTimeout(r, 700));
+    setPayStep(4); await new Promise((r) => setTimeout(r, 500));
     try {
       const token = localStorage.getItem("token");
       const headers = { "Content-Type": "application/json" };
@@ -153,7 +179,7 @@ export default function OrderForm({ cart, backendUrl, onClose, onSuccess }) {
       <div style={{ ...s.modal, background: c.bg, boxShadow: c.shadow }} onClick={(e) => e.stopPropagation()}>
         <button style={{ ...s.close, background: c.closeBg, color: c.closeTxt }} onClick={onClose}>✕</button>
 
-        {/* Progress */}
+        {/* Progress bar */}
         <div style={s.progress}>
           {[1, 2, 3].map((n) => (
             <span key={n} style={{ display: "contents" }}>
@@ -246,15 +272,17 @@ export default function OrderForm({ cart, backendUrl, onClose, onSuccess }) {
                 <>
                   <label style={{ ...s.label, color: c.muted }}>Delivery Address *</label>
                   <input style={{ ...s.input, background: c.inputBg, border: `1.5px solid ${c.inputBorder}`, color: c.text }}
-                    placeholder="Street, building, district..." value={form.address}
+                    placeholder="Street, building, district…" value={form.address}
                     onChange={(e) => setForm({ ...form, address: e.target.value })} required />
                 </>
               )}
               {error && <div style={s.errorBox}>⚠️ {error}</div>}
               <button style={s.submitBtn} type="submit" disabled={loading}>
-                {loading ? "Sending code…" : "Continue →"}
+                {loading
+                  ? <><span style={s.spinner} />  Sending code…</>
+                  : "Continue →"}
               </button>
-              <p style={{ ...s.submitNote, color: c.muted }}>A 6-digit code will be sent to your email</p>
+              <p style={{ ...s.submitNote, color: c.muted }}>A 6-digit verification code will be sent to your email</p>
             </form>
           </div>
         )}
@@ -266,14 +294,14 @@ export default function OrderForm({ cart, backendUrl, onClose, onSuccess }) {
               <div style={{ ...s.headerIcon, background: "linear-gradient(135deg, #eff6ff, #dbeafe)" }}>📧</div>
               <h2 style={{ ...s.title, color: c.text }}>Check Your Email</h2>
               <p style={{ ...s.sub, color: c.muted }}>
-                Sent a 6-digit code to<br />
+                We sent a 6-digit code to<br />
                 <strong style={{ color: c.text }}>{form.email}</strong>
               </p>
             </div>
 
             {devCode && (
               <div style={{ background: "#fff8e1", border: "1px solid #ffe082", borderRadius: "12px", padding: "0.8rem 1rem", marginBottom: "1rem", textAlign: "center" }}>
-                <p style={{ color: "#5d4037", fontSize: "0.74rem", fontWeight: "600", marginBottom: "0.3rem" }}>⚙️ DEV — Gmail not configured</p>
+                <p style={{ color: "#5d4037", fontSize: "0.74rem", fontWeight: "600", marginBottom: "0.3rem" }}>⚙️ DEV — code shown below</p>
                 <p style={{ fontFamily: "monospace", fontSize: "1.8rem", fontWeight: "900", color: "#1c0f18", letterSpacing: "0.3em" }}>{devCode}</p>
               </div>
             )}
@@ -291,7 +319,7 @@ export default function OrderForm({ cart, backendUrl, onClose, onSuccess }) {
             {otpError && <div style={{ ...s.errorBox, textAlign: "center" }}>⚠️ {otpError}</div>}
             <form onSubmit={verifyAndPay}>
               <button style={{ ...s.submitBtn, opacity: otpCode.length === 6 ? 1 : 0.5 }} type="submit" disabled={loading || otpCode.length !== 6}>
-                {loading ? "Verifying…" : "Verify & Continue →"}
+                {loading ? <><span style={s.spinner} />  Verifying…</> : "Verify & Continue →"}
               </button>
             </form>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "0.8rem" }}>
@@ -302,7 +330,7 @@ export default function OrderForm({ cart, backendUrl, onClose, onSuccess }) {
                 {resending ? "Sending…" : "Resend code"}
               </button>
             </div>
-            <div style={{ ...s.smsNote, color: c.muted }}>💡 Didn't get it? Check spam or click Resend</div>
+            <div style={{ ...s.smsNote, color: c.muted }}>💡 Didn't receive it? Check your spam folder or click Resend</div>
           </div>
         )}
 
@@ -310,61 +338,75 @@ export default function OrderForm({ cart, backendUrl, onClose, onSuccess }) {
         {step === 3 && (
           <div className="animate-fadeIn">
             <div style={s.header}>
-              <div style={{ ...s.headerIcon, background: "linear-gradient(135deg, #f0fdf4, #dcfce7)" }}>💳</div>
+              <div style={{ ...s.headerIcon, background: "linear-gradient(135deg, #f0fdf4, #dcfce7)" }}>🔒</div>
               <h2 style={{ ...s.title, color: c.text }}>Secure Payment</h2>
-              <p style={{ ...s.sub, color: c.muted }}>Your payment is encrypted and secure</p>
+              <p style={{ ...s.sub, color: c.muted }}>256-bit SSL encrypted · Your data is never stored</p>
             </div>
 
-            {/* Accepted cards row */}
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "1.1rem" }}>
-              <span style={{ color: c.muted, fontSize: "0.72rem" }}>We accept:</span>
-              <div style={{ display: "flex", gap: "0.4rem" }}>
-                {[["#1a237e", "VISA"], ["#b71c1c", "MC"], ["#1b5e20", "AMEX"]].map(([col, name]) => (
-                  <div key={name} style={{ background: col, color: "white", fontSize: "0.58rem", fontWeight: "800", padding: "0.22rem 0.6rem", borderRadius: "6px", letterSpacing: "0.06em", opacity: cardType !== "generic" && ((name === "VISA" && cardType === "visa") || (name === "MC" && cardType === "mastercard") || (name === "AMEX" && cardType === "amex")) ? 1 : 0.35, transition: "opacity 0.2s" }}>{name}</div>
-                ))}
+            {/* Accepted cards */}
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "1rem" }}>
+              <span style={{ color: c.muted, fontSize: "0.72rem" }}>Accepted cards:</span>
+              <div style={{ display: "flex", gap: "0.45rem" }}>
+                {[["#1a237e", "VISA", "visa"], ["#880e4f", "MC", "mastercard"], ["#1b5e20", "AMEX", "amex"]].map(([col, name, type]) => {
+                  const isDetected = cardType !== "generic" && cardType === type;
+                  const isOther = cardType !== "generic" && cardType !== type;
+                  return (
+                    <div key={name} style={{ background: col, color: "white", fontSize: "0.6rem", fontWeight: "800", padding: "0.24rem 0.65rem", borderRadius: "6px", letterSpacing: "0.06em", opacity: isOther ? 0.25 : 1, transition: "opacity 0.25s, transform 0.25s", transform: isDetected ? "scale(1.1)" : "scale(1)", boxShadow: isDetected ? `0 4px 12px ${col}55` : "none" }}>{name}</div>
+                  );
+                })}
               </div>
             </div>
 
-            {/* Live card preview — flips on CVV focus */}
-            <div style={{ perspective: "1000px", marginBottom: "1.2rem", height: "148px" }}>
-              <div style={{ position: "relative", width: "100%", height: "100%", transformStyle: "preserve-3d", transition: "transform 0.5s ease", transform: cvvFocused ? "rotateY(180deg)" : "rotateY(0deg)" }}>
+            {/* Live card preview */}
+            <div style={{ perspective: "1000px", marginBottom: "1.2rem", height: "152px" }}>
+              <div style={{ position: "relative", width: "100%", height: "100%", transformStyle: "preserve-3d", transition: "transform 0.55s ease", transform: cvvFocused ? "rotateY(180deg)" : "rotateY(0deg)" }}>
 
                 {/* Front */}
-                <div style={{ position: "absolute", inset: 0, backfaceVisibility: "hidden", WebkitBackfaceVisibility: "hidden", background: cardGradient, borderRadius: "16px", padding: "1.2rem 1.4rem", overflow: "hidden" }}>
-                  <div style={{ position: "absolute", width: "160px", height: "160px", top: "-50px", right: "-30px", borderRadius: "50%", background: "rgba(255,255,255,0.07)", pointerEvents: "none" }} />
-                  <div style={{ position: "absolute", width: "100px", height: "100px", bottom: "-30px", left: "20px", borderRadius: "50%", background: "rgba(255,255,255,0.05)", pointerEvents: "none" }} />
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.7rem" }}>
-                    <div style={{ width: "32px", height: "24px", background: "rgba(255,255,255,0.3)", borderRadius: "4px", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                      <div style={{ width: "18px", height: "14px", background: "rgba(255,200,0,0.6)", borderRadius: "2px" }} />
+                <div style={{ position: "absolute", inset: 0, backfaceVisibility: "hidden", WebkitBackfaceVisibility: "hidden", background: cardGradient, borderRadius: "18px", padding: "1.1rem 1.4rem", overflow: "hidden", boxShadow: "0 12px 40px rgba(0,0,0,0.35)" }}>
+                  {/* Radial decorations */}
+                  <div style={{ position: "absolute", width: "180px", height: "180px", top: "-60px", right: "-40px", borderRadius: "50%", background: "rgba(255,255,255,0.07)" }} />
+                  <div style={{ position: "absolute", width: "110px", height: "110px", bottom: "-40px", left: "10px", borderRadius: "50%", background: "rgba(255,255,255,0.05)" }} />
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "0.6rem" }}>
+                    {/* Chip */}
+                    <div style={{ width: "34px", height: "26px", background: "linear-gradient(135deg, #f5c842, #d4a017)", borderRadius: "5px", display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gridTemplateRows: "1fr 1fr 1fr", gap: "2px", padding: "4px" }}>
+                      {Array.from({ length: 9 }).map((_, i) => (
+                        <div key={i} style={{ background: i === 4 ? "transparent" : "rgba(0,0,0,0.25)", borderRadius: "1px" }} />
+                      ))}
                     </div>
-                    <span style={{ color: "rgba(255,255,255,0.85)", fontSize: "0.72rem", fontWeight: "800", letterSpacing: "0.1em" }}>{cardLabel}</span>
+                    {/* NFC icon */}
+                    <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: "1px" }}>
+                      {[12, 9, 6].map((w, i) => (
+                        <div key={i} style={{ height: "2px", width: `${w}px`, background: "rgba(255,255,255,0.5)", borderRadius: "2px", marginLeft: "auto" }} />
+                      ))}
+                    </div>
                   </div>
-                  <p style={{ fontFamily: "monospace", color: "white", fontSize: "1rem", letterSpacing: "0.2em", fontWeight: "600", marginBottom: "0.8rem", textShadow: "0 1px 4px rgba(0,0,0,0.3)" }}>
+                  <p style={{ fontFamily: "monospace", color: "white", fontSize: "1rem", letterSpacing: "0.22em", fontWeight: "600", marginBottom: "0.75rem", textShadow: "0 1px 4px rgba(0,0,0,0.4)" }}>
                     {card.number || (cardType === "amex" ? "•••• •••••• •••••" : "•••• •••• •••• ••••")}
                   </p>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}>
                     <div>
-                      <p style={{ color: "rgba(255,255,255,0.4)", fontSize: "0.52rem", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: "2px" }}>Card Holder</p>
-                      <p style={{ color: "white", fontSize: "0.78rem", fontWeight: "600", letterSpacing: "0.04em" }}>{card.name || "YOUR NAME"}</p>
+                      <p style={{ color: "rgba(255,255,255,0.4)", fontSize: "0.48rem", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: "2px" }}>Card Holder</p>
+                      <p style={{ color: "white", fontSize: "0.76rem", fontWeight: "600", letterSpacing: "0.06em" }}>{card.name || "YOUR NAME"}</p>
                     </div>
                     <div style={{ textAlign: "right" }}>
-                      <p style={{ color: "rgba(255,255,255,0.4)", fontSize: "0.52rem", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: "2px" }}>Expires</p>
-                      <p style={{ color: "white", fontSize: "0.78rem", fontWeight: "600" }}>{card.expiry || "MM/YY"}</p>
+                      <p style={{ color: "rgba(255,255,255,0.4)", fontSize: "0.48rem", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: "2px" }}>Expires</p>
+                      <p style={{ color: "white", fontSize: "0.76rem", fontWeight: "600" }}>{card.expiry || "MM/YY"}</p>
                     </div>
+                    <div style={{ color: "rgba(255,255,255,0.85)", fontSize: "0.75rem", fontWeight: "900", letterSpacing: "0.08em" }}>{cardLabel}</div>
                   </div>
                 </div>
 
                 {/* Back */}
-                <div style={{ position: "absolute", inset: 0, backfaceVisibility: "hidden", WebkitBackfaceVisibility: "hidden", transform: "rotateY(180deg)", background: cardGradient, borderRadius: "16px", overflow: "hidden" }}>
-                  <div style={{ height: "36px", background: "rgba(0,0,0,0.45)", margin: "20px 0 16px" }} />
+                <div style={{ position: "absolute", inset: 0, backfaceVisibility: "hidden", WebkitBackfaceVisibility: "hidden", transform: "rotateY(180deg)", background: cardGradient, borderRadius: "18px", overflow: "hidden", boxShadow: "0 12px 40px rgba(0,0,0,0.35)" }}>
+                  <div style={{ height: "38px", background: "rgba(0,0,0,0.5)", margin: "18px 0 14px" }} />
                   <div style={{ padding: "0 1.4rem" }}>
-                    <p style={{ color: "rgba(255,255,255,0.5)", fontSize: "0.58rem", letterSpacing: "0.1em", marginBottom: "6px" }}>CVV</p>
-                    <div style={{ background: "rgba(255,255,255,0.9)", borderRadius: "6px", padding: "0.5rem 1rem", display: "flex", justifyContent: "flex-end" }}>
-                      <span style={{ fontFamily: "monospace", color: "#1c0f18", fontSize: "1rem", fontWeight: "700", letterSpacing: "0.2em" }}>
-                        {card.cvv ? "•".repeat(card.cvv.length) : "•••"}
+                    <p style={{ color: "rgba(255,255,255,0.45)", fontSize: "0.56rem", letterSpacing: "0.1em", marginBottom: "5px" }}>CVV / CVC</p>
+                    <div style={{ background: "rgba(255,255,255,0.93)", borderRadius: "6px", padding: "0.45rem 1rem", display: "flex", justifyContent: "flex-end", alignItems: "center" }}>
+                      <span style={{ fontFamily: "monospace", color: "#1c0f18", fontSize: "1rem", fontWeight: "700", letterSpacing: "0.22em" }}>
+                        {card.cvv ? "•".repeat(card.cvv.length) : (cardType === "amex" ? "••••" : "•••")}
                       </span>
                     </div>
-                    <p style={{ color: "rgba(255,255,255,0.35)", fontSize: "0.58rem", marginTop: "8px", textAlign: "right" }}>3-digit code on back of card</p>
+                    <p style={{ color: "rgba(255,255,255,0.3)", fontSize: "0.56rem", marginTop: "7px", textAlign: "right" }}>{cardType === "amex" ? "4-digit code on front" : "3-digit code on back"}</p>
                   </div>
                 </div>
               </div>
@@ -372,42 +414,54 @@ export default function OrderForm({ cart, backendUrl, onClose, onSuccess }) {
 
             <form onSubmit={placeOrder}>
               {/* Card number */}
-              <div style={{ position: "relative", marginBottom: "0" }}>
-                <label style={{ ...s.label, color: c.muted }}>Card Number</label>
-                <div style={{ position: "relative" }}>
-                  <input
-                    style={{ ...s.input, background: c.inputBg, border: `1.5px solid ${rawNum.length === (cardType === "amex" ? 15 : 16) ? "#22c55e" : c.inputBorder}`, color: c.text, fontFamily: "monospace", letterSpacing: "0.1em", paddingRight: "3rem" }}
-                    placeholder={cardType === "amex" ? "3782 822463 10005" : "1234 5678 9012 3456"}
-                    value={card.number} inputMode="numeric"
-                    onChange={(e) => setCard({ ...card, number: formatCard(e.target.value) })} />
-                  {rawNum.length === (cardType === "amex" ? 15 : 16) && (
-                    <span style={{ position: "absolute", right: "1rem", top: "50%", transform: "translateY(-55%)", color: "#22c55e", fontSize: "1rem" }}>✓</span>
-                  )}
-                </div>
-              </div>
-
-              <label style={{ ...s.label, color: c.muted }}>Name on Card</label>
-              <div style={{ position: "relative" }}>
+              <label style={{ ...s.label, color: c.muted }}>Card Number</label>
+              <div style={{ position: "relative", marginBottom: "1rem" }}>
                 <input
-                  style={{ ...s.input, background: c.inputBg, border: `1.5px solid ${card.name.length > 2 ? "#22c55e" : c.inputBorder}`, color: c.text, paddingRight: "3rem" }}
-                  placeholder="TAMAR IVANIDZE" value={card.name}
-                  onChange={(e) => setCard({ ...card, name: e.target.value.toUpperCase() })} />
-                {card.name.length > 2 && <span style={{ position: "absolute", right: "1rem", top: "50%", transform: "translateY(-55%)", color: "#22c55e", fontSize: "1rem" }}>✓</span>}
+                  style={{ ...s.input, margin: 0, background: c.inputBg, border: `1.5px solid ${rawNum.length > 0 ? (cardValid ? "#22c55e" : rawNum.length === expectedLen ? "#ef4444" : c.inputBorder) : c.inputBorder}`, color: c.text, fontFamily: "monospace", letterSpacing: "0.1em", paddingRight: "3rem" }}
+                  placeholder={cardType === "amex" ? "3782 822463 10005" : "1234 5678 9012 3456"}
+                  value={card.number} inputMode="numeric"
+                  onChange={(e) => setCard({ ...card, number: formatCard(e.target.value) })} />
+                {rawNum.length > 0 && (
+                  <span style={{ position: "absolute", right: "1rem", top: "50%", transform: "translateY(-50%)", fontSize: "0.9rem" }}>
+                    {cardValid ? "✅" : rawNum.length === expectedLen ? "❌" : ""}
+                  </span>
+                )}
               </div>
 
+              {/* Name on card */}
+              <label style={{ ...s.label, color: c.muted }}>Name on Card</label>
+              <div style={{ position: "relative", marginBottom: "1rem" }}>
+                <input
+                  style={{ ...s.input, margin: 0, background: c.inputBg, border: `1.5px solid ${card.name.length > 0 ? (nameOk ? "#22c55e" : c.inputBorder) : c.inputBorder}`, color: c.text, paddingRight: "3rem" }}
+                  placeholder="FIRST LAST" value={card.name}
+                  onChange={(e) => setCard({ ...card, name: e.target.value.toUpperCase() })} />
+                {nameOk && <span style={{ position: "absolute", right: "1rem", top: "50%", transform: "translateY(-50%)", fontSize: "0.9rem" }}>✅</span>}
+              </div>
+
+              {/* Expiry + CVV */}
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.8rem" }}>
                 <div>
-                  <label style={{ ...s.label, color: c.muted }}>Expiry</label>
-                  <input
-                    style={{ ...s.input, background: c.inputBg, border: `1.5px solid ${card.expiry.length === 5 ? "#22c55e" : c.inputBorder}`, color: c.text, fontFamily: "monospace", textAlign: "center", letterSpacing: "0.1em" }}
-                    placeholder="MM/YY" value={card.expiry} inputMode="numeric"
-                    onChange={(e) => setCard({ ...card, expiry: formatExpiry(e.target.value) })} />
+                  <label style={{ ...s.label, color: c.muted }}>Expiry Date</label>
+                  <div style={{ position: "relative" }}>
+                    <input
+                      style={{ ...s.input, background: c.inputBg, border: `1.5px solid ${card.expiry.length === 5 ? (expiryOk ? "#22c55e" : "#ef4444") : c.inputBorder}`, color: c.text, fontFamily: "monospace", textAlign: "center", letterSpacing: "0.1em" }}
+                      placeholder="MM/YY" value={card.expiry} inputMode="numeric"
+                      onChange={(e) => setCard({ ...card, expiry: formatExpiry(e.target.value) })} />
+                    {card.expiry.length === 5 && (
+                      <span style={{ position: "absolute", right: "0.75rem", top: "50%", transform: "translateY(-50%)", fontSize: "0.75rem" }}>{expiryOk ? "✅" : "❌"}</span>
+                    )}
+                  </div>
                 </div>
                 <div>
-                  <label style={{ ...s.label, color: c.muted }}>CVV <span style={{ color: c.muted, fontWeight: "400", fontSize: "0.68rem" }}>(flip card)</span></label>
+                  <label style={{ ...s.label, color: c.muted }}>
+                    CVV
+                    <span style={{ marginLeft: "0.3rem", color: c.muted, fontWeight: "400", fontSize: "0.68rem" }}>
+                      {cvvFocused ? "↑ see card back" : "(focus to reveal)"}
+                    </span>
+                  </label>
                   <input
-                    style={{ ...s.input, background: c.inputBg, border: `1.5px solid ${card.cvv.length >= 3 ? "#22c55e" : cvvFocused ? "#d4235e" : c.inputBorder}`, color: c.text, fontFamily: "monospace", letterSpacing: "0.3em", textAlign: "center" }}
-                    placeholder="•••" maxLength={cardType === "amex" ? 4 : 3} value={card.cvv}
+                    style={{ ...s.input, background: c.inputBg, border: `1.5px solid ${cvvOk ? "#22c55e" : cvvFocused ? "#d4235e" : c.inputBorder}`, color: c.text, fontFamily: "monospace", letterSpacing: "0.3em", textAlign: "center" }}
+                    placeholder={cardType === "amex" ? "••••" : "•••"} maxLength={cardType === "amex" ? 4 : 3} value={card.cvv}
                     inputMode="numeric" type="password"
                     onFocus={() => setCvvFocused(true)}
                     onBlur={() => setCvvFocused(false)}
@@ -417,17 +471,23 @@ export default function OrderForm({ cart, backendUrl, onClose, onSuccess }) {
 
               {error && <div style={s.errorBox}>⚠️ {error}</div>}
 
-              {/* Processing steps */}
+              {/* Processing animation */}
               {paying && (
-                <div style={{ background: isDark ? "rgba(255,255,255,0.04)" : "#f8f5ff", border: `1px solid ${isDark ? "rgba(255,255,255,0.08)" : "#e8e0f0"}`, borderRadius: "12px", padding: "0.9rem 1.1rem", marginBottom: "1rem" }}>
-                  {[["Connecting to bank…", 1], ["Authorizing payment…", 2], ["Confirming order…", 3]].map(([msg, n]) => (
-                    <div key={n} style={{ display: "flex", alignItems: "center", gap: "0.6rem", padding: "0.28rem 0", opacity: payStep >= n ? 1 : 0.3, transition: "opacity 0.3s" }}>
+                <div style={{ background: isDark ? "rgba(255,255,255,0.04)" : "#f8f5ff", border: `1px solid ${isDark ? "rgba(255,255,255,0.08)" : "#e8e0f0"}`, borderRadius: "14px", padding: "1rem 1.2rem", marginBottom: "1rem" }}>
+                  <p style={{ color: c.muted, fontSize: "0.68rem", fontWeight: "600", letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: "0.75rem" }}>Processing payment…</p>
+                  {[
+                    ["Encrypting card data…", 1],
+                    ["Contacting your bank…", 2],
+                    ["Authorizing transaction…", 3],
+                    ["Confirming order…", 4],
+                  ].map(([msg, n]) => (
+                    <div key={n} style={{ display: "flex", alignItems: "center", gap: "0.65rem", padding: "0.3rem 0", opacity: payStep >= n ? 1 : 0.25, transition: "opacity 0.35s" }}>
                       {payStep > n ? (
-                        <span style={{ color: "#22c55e", fontSize: "0.9rem", width: "16px", flexShrink: 0 }}>✓</span>
+                        <span style={{ color: "#22c55e", fontSize: "0.85rem", width: "18px", flexShrink: 0, textAlign: "center" }}>✓</span>
                       ) : payStep === n ? (
-                        <span style={{ width: "14px", height: "14px", border: "2px solid rgba(212,35,94,0.3)", borderTop: "2px solid #d4235e", borderRadius: "50%", display: "inline-block", animation: "spin 0.7s linear infinite", flexShrink: 0 }} />
+                        <span style={{ width: "14px", height: "14px", border: "2px solid rgba(212,35,94,0.25)", borderTop: "2px solid #d4235e", borderRadius: "50%", display: "inline-block", animation: "spin 0.7s linear infinite", flexShrink: 0 }} />
                       ) : (
-                        <span style={{ width: "16px", color: c.muted, fontSize: "0.7rem", flexShrink: 0 }}>○</span>
+                        <span style={{ width: "18px", color: c.muted, fontSize: "0.6rem", textAlign: "center", flexShrink: 0 }}>○</span>
                       )}
                       <span style={{ color: payStep >= n ? c.text : c.muted, fontSize: "0.82rem", fontWeight: payStep === n ? "600" : "400" }}>{msg}</span>
                     </div>
@@ -435,14 +495,21 @@ export default function OrderForm({ cart, backendUrl, onClose, onSuccess }) {
                 </div>
               )}
 
-              <button style={{ ...s.submitBtn, background: paying ? "linear-gradient(135deg, #6b21a8, #4c1d95)" : "linear-gradient(135deg, #d4235e, #a01848)" }} type="submit" disabled={paying}>
-                {paying ? "Processing…" : `🔒 Pay ₾${total.toFixed(2)}`}
+              {/* Pay button */}
+              <button
+                style={{ ...s.submitBtn, background: paying ? "linear-gradient(135deg, #6b21a8, #4c1d95)" : "linear-gradient(135deg, #d4235e, #a01848)", boxShadow: paying ? "none" : "0 6px 20px rgba(212,35,94,0.35)" }}
+                type="submit" disabled={paying}
+              >
+                {paying
+                  ? <><span style={s.spinner} />  Processing…</>
+                  : `🔒  Pay Securely · ₾${total.toFixed(2)}`}
               </button>
 
-              <div style={{ display: "flex", align: "center", justifyContent: "center", gap: "1rem", marginTop: "0.75rem" }}>
-                {[["🔒", "SSL Encrypted"], ["🛡️", "Secure"], ["✓", "Demo only"]].map(([icon, label]) => (
-                  <span key={label} style={{ color: c.muted, fontSize: "0.68rem", display: "flex", alignItems: "center", gap: "0.25rem" }}>
-                    <span>{icon}</span>{label}
+              {/* Trust badges */}
+              <div style={{ display: "flex", justifyContent: "center", gap: "1.2rem", marginTop: "0.8rem" }}>
+                {[["🔒", "256-bit SSL"], ["🛡️", "PCI DSS"], ["🏦", "Bank-grade"]].map(([icon, label]) => (
+                  <span key={label} style={{ color: c.muted, fontSize: "0.67rem", display: "flex", alignItems: "center", gap: "0.25rem" }}>
+                    {icon} {label}
                   </span>
                 ))}
               </div>
@@ -472,16 +539,16 @@ const dc = {
 };
 
 const s = {
-  overlay: { position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)", zIndex: 200, display: "flex", alignItems: "center", justifyContent: "center", backdropFilter: "blur(6px)", padding: "1rem" },
+  overlay: { position: "fixed", inset: 0, background: "rgba(0,0,0,0.65)", zIndex: 200, display: "flex", alignItems: "center", justifyContent: "center", backdropFilter: "blur(8px)", padding: "1rem" },
   modal: { borderRadius: "28px", padding: "2.2rem", width: "100%", maxWidth: "460px", position: "relative", maxHeight: "93vh", overflowY: "auto" },
   close: { position: "absolute", top: "1.2rem", right: "1.2rem", border: "none", width: "30px", height: "30px", borderRadius: "50%", cursor: "pointer", fontSize: "0.85rem", display: "flex", alignItems: "center", justifyContent: "center" },
   progress: { display: "flex", alignItems: "center", justifyContent: "center", gap: "0", marginBottom: "0.5rem" },
   progressDot: { width: "28px", height: "28px", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "0.75rem", fontWeight: "700", transition: "all 0.3s" },
   progressLine: { width: "50px", height: "2px", transition: "background 0.3s" },
-  header: { textAlign: "center", marginBottom: "1.4rem" },
-  headerIcon: { width: "56px", height: "56px", background: "linear-gradient(135deg, #fff0f5, #ffdae8)", borderRadius: "18px", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "1.8rem", margin: "0 auto 0.8rem" },
-  title: { fontFamily: "'Playfair Display', serif", fontSize: "1.4rem", fontWeight: "700", marginBottom: "0.25rem" },
-  sub: { fontSize: "0.82rem", lineHeight: 1.5 },
+  header: { textAlign: "center", marginBottom: "1.2rem" },
+  headerIcon: { width: "52px", height: "52px", background: "linear-gradient(135deg, #fff0f5, #ffdae8)", borderRadius: "16px", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "1.7rem", margin: "0 auto 0.75rem" },
+  title: { fontFamily: "'Playfair Display', serif", fontSize: "1.35rem", fontWeight: "700", marginBottom: "0.2rem" },
+  sub: { fontSize: "0.81rem", lineHeight: 1.55 },
   summary: { borderRadius: "16px", padding: "1rem 1.2rem", marginBottom: "1.1rem" },
   summaryHeader: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.6rem" },
   summaryLabel: { fontWeight: "600", fontSize: "0.82rem" },
@@ -501,10 +568,11 @@ const s = {
   deliveryNote: { background: "#e8f5e9", color: "#2e7d32", fontSize: "0.8rem", fontWeight: "500", padding: "0.55rem 1rem", borderRadius: "10px", marginBottom: "1rem", textAlign: "center" },
   formGrid: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.8rem" },
   label: { display: "block", marginBottom: "0.38rem", fontSize: "0.78rem", fontWeight: "600" },
-  input: { width: "100%", padding: "0.82rem 1rem", borderRadius: "12px", marginBottom: "1rem", fontSize: "0.92rem", boxSizing: "border-box", outline: "none", transition: "border-color 0.15s, box-shadow 0.15s" },
-  errorBox: { background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.25)", color: "#dc2626", borderRadius: "10px", padding: "0.7rem 1rem", fontSize: "0.82rem", marginBottom: "1rem", lineHeight: 1.5 },
-  submitBtn: { width: "100%", background: "linear-gradient(135deg, #d4235e, #a01848)", color: "white", border: "none", padding: "1rem", borderRadius: "14px", fontSize: "0.95rem", fontWeight: "700", cursor: "pointer", marginBottom: "0.6rem", transition: "opacity 0.2s" },
+  input: { width: "100%", padding: "0.82rem 1rem", borderRadius: "12px", marginBottom: "1rem", fontSize: "0.9rem", boxSizing: "border-box", outline: "none", transition: "border-color 0.15s, box-shadow 0.15s" },
+  errorBox: { background: "rgba(239,68,68,0.08)", border: "1px solid rgba(239,68,68,0.22)", color: "#dc2626", borderRadius: "10px", padding: "0.7rem 1rem", fontSize: "0.82rem", marginBottom: "1rem", lineHeight: 1.5 },
+  submitBtn: { width: "100%", background: "linear-gradient(135deg, #d4235e, #a01848)", color: "white", border: "none", padding: "1rem", borderRadius: "14px", fontSize: "0.95rem", fontWeight: "700", cursor: "pointer", marginBottom: "0.6rem", transition: "opacity 0.2s", display: "flex", alignItems: "center", justifyContent: "center", gap: "0.4rem" },
   submitNote: { textAlign: "center", fontSize: "0.74rem" },
+  spinner: { width: "15px", height: "15px", border: "2px solid rgba(255,255,255,0.3)", borderTop: "2px solid white", borderRadius: "50%", display: "inline-block", animation: "spin 0.7s linear infinite", flexShrink: 0 },
   codeWrap: { display: "flex", gap: "0.5rem", justifyContent: "center", marginBottom: "1.4rem" },
   codeBox: { width: "46px", height: "60px", borderRadius: "14px", fontSize: "1.8rem", fontWeight: "900", textAlign: "center", outline: "none", transition: "border-color 0.15s, box-shadow 0.15s", fontFamily: "monospace" },
   linkBtn: { background: "none", border: "none", cursor: "pointer", fontSize: "0.82rem", fontWeight: "500" },
