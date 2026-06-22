@@ -184,6 +184,20 @@ export default function Menu() {
         </div>
       </div>
 
+      {/* ── Delivery info bar ── */}
+      <div style={{ background: "var(--bg-card)", borderBottom: "1px solid var(--border)", padding: "0.75rem 2rem" }}>
+        <div style={{ maxWidth: "1400px", margin: "0 auto", display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "0.5rem" }}>
+          <div style={{ display: "flex", gap: "1.5rem", flexWrap: "wrap" }}>
+            <span style={{ color: "var(--text-muted)", fontSize: "0.78rem", display: "flex", alignItems: "center", gap: "0.4rem" }}>🕐 <strong style={{ color: "var(--accent)" }}>Order before 3PM</strong> for same-day delivery</span>
+            <span style={{ color: "var(--text-muted)", fontSize: "0.78rem" }}>🚚 Vake · Saburtalo · Vera · Mtatsminda & more</span>
+          </div>
+          <a href="https://wa.me/995555942959?text=გამარჯობა! მინდა შეკვეთა გავაკეთო" target="_blank" rel="noopener noreferrer"
+            style={{ display: "inline-flex", alignItems: "center", gap: "0.4rem", background: "#25D366", color: "white", border: "none", padding: "0.35rem 0.85rem", borderRadius: "50px", fontSize: "0.75rem", fontWeight: "600", textDecoration: "none" }}>
+            💬 Custom order via WhatsApp
+          </a>
+        </div>
+      </div>
+
       {/* ── Products ── */}
       <main style={{ maxWidth: "1400px", margin: "0 auto", padding: "3.5rem 2rem 8rem" }}>
 

@@ -126,38 +126,51 @@ export default function Shop() {
         <div style={{ position: "absolute", width: "500px", height: "500px", bottom: "-150px", left: "-100px", borderRadius: "50%", background: "radial-gradient(circle, rgba(90,26,58,0.35) 0%, transparent 68%)", pointerEvents: "none" }} />
 
         <div style={{ maxWidth: "740px", margin: "0 auto", position: "relative", zIndex: 1 }}>
-          <div style={{ display: "inline-flex", alignItems: "center", gap: "0.5rem", background: "rgba(212,35,94,0.15)", border: "1px solid rgba(212,35,94,0.32)", color: "#f4a3b8", borderRadius: "50px", padding: "0.45rem 1.3rem", fontSize: "0.74rem", fontWeight: "600", letterSpacing: "0.06em", marginBottom: "2rem", animation: "fadeInUp 0.5s ease both" }}>
-            🇬🇪 Georgia's Premier Patisserie
+          {/* Social proof bar */}
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "0.6rem", marginBottom: "1.8rem", animation: "fadeInUp 0.5s ease both", flexWrap: "wrap" }}>
+            <div style={{ display: "inline-flex", alignItems: "center", gap: "0.5rem", background: "rgba(212,35,94,0.15)", border: "1px solid rgba(212,35,94,0.32)", color: "#f4a3b8", borderRadius: "50px", padding: "0.45rem 1.2rem", fontSize: "0.74rem", fontWeight: "600", letterSpacing: "0.04em" }}>
+              ⭐⭐⭐⭐⭐ &nbsp;Loved by 500+ customers
+            </div>
+            <div style={{ display: "inline-flex", alignItems: "center", gap: "0.4rem", background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)", color: "rgba(255,255,255,0.6)", borderRadius: "50px", padding: "0.45rem 1.1rem", fontSize: "0.74rem" }}>
+              🇬🇪 Tbilisi · Est. 2021
+            </div>
           </div>
 
           <h1 style={{ fontFamily: "'Playfair Display', serif", color: "white", fontSize: "clamp(2.6rem, 6vw, 4.2rem)", fontWeight: "700", lineHeight: 1.12, marginBottom: "1.4rem", animation: "fadeInUp 0.55s ease 0.1s both" }}>
             Every bite tells<br />a <em style={{ color: "#f4a3b8", fontStyle: "italic" }}>sweet</em> story
           </h1>
 
-          <p style={{ color: "rgba(255,255,255,0.45)", fontSize: "1.05rem", lineHeight: 1.9, marginBottom: "2.8rem", animation: "fadeInUp 0.55s ease 0.2s both" }}>
-            Handcrafted cakes, pastries & confections baked fresh every morning<br />
-            <span style={{ color: "rgba(255,255,255,0.28)", fontSize: "0.92rem" }}>from the finest local Georgian ingredients — delivered to your door</span>
+          <p style={{ color: "rgba(255,255,255,0.5)", fontSize: "1.05rem", lineHeight: 1.9, marginBottom: "2.8rem", animation: "fadeInUp 0.55s ease 0.2s both" }}>
+            Homemade cakes, pastries & chocolates baked fresh every morning in Tbilisi<br />
+            <span style={{ color: "rgba(255,255,255,0.28)", fontSize: "0.92rem" }}>Delivery across the city · Order online, we bring it to your door</span>
           </p>
 
-          <div style={{ display: "flex", gap: "1rem", justifyContent: "center", flexWrap: "wrap", marginBottom: "4rem", animation: "fadeInUp 0.55s ease 0.3s both" }}>
+          <div style={{ display: "flex", gap: "1rem", justifyContent: "center", flexWrap: "wrap", marginBottom: "3.5rem", animation: "fadeInUp 0.55s ease 0.3s both" }}>
             <button
               style={{ background: "#d4235e", border: "none", color: "white", padding: "1rem 2.4rem", borderRadius: "50px", fontSize: "0.98rem", fontWeight: "700", cursor: "pointer", boxShadow: "0 8px 32px rgba(212,35,94,0.45)", transition: "transform 0.2s, box-shadow 0.2s" }}
               onMouseEnter={e => { e.currentTarget.style.transform = "translateY(-2px)"; e.currentTarget.style.boxShadow = "0 16px 40px rgba(212,35,94,0.55)"; }}
               onMouseLeave={e => { e.currentTarget.style.transform = ""; e.currentTarget.style.boxShadow = "0 8px 32px rgba(212,35,94,0.45)"; }}
               onClick={() => navigate("/menu")}
-            >Explore Our Menu →</button>
-            {!userEmail && (
-              <button style={{ background: "transparent", border: "1.5px solid rgba(255,255,255,0.22)", color: "rgba(255,255,255,0.85)", padding: "1rem 2.4rem", borderRadius: "50px", fontSize: "0.98rem", fontWeight: "500", cursor: "pointer", transition: "border-color 0.2s, color 0.2s" }}
-                onMouseEnter={e => { e.currentTarget.style.borderColor = "rgba(255,255,255,0.5)"; e.currentTarget.style.color = "white"; }}
-                onMouseLeave={e => { e.currentTarget.style.borderColor = "rgba(255,255,255,0.22)"; e.currentTarget.style.color = "rgba(255,255,255,0.85)"; }}
-                onClick={() => setAuthOpen(true)}
-              >Create Account →</button>
-            )}
+            >🛒 Order Now</button>
+            <button style={{ background: "transparent", border: "1.5px solid rgba(255,255,255,0.22)", color: "rgba(255,255,255,0.85)", padding: "1rem 2.4rem", borderRadius: "50px", fontSize: "0.98rem", fontWeight: "500", cursor: "pointer", transition: "border-color 0.2s, color 0.2s" }}
+              onMouseEnter={e => { e.currentTarget.style.borderColor = "rgba(255,255,255,0.5)"; e.currentTarget.style.color = "white"; }}
+              onMouseLeave={e => { e.currentTarget.style.borderColor = "rgba(255,255,255,0.22)"; e.currentTarget.style.color = "rgba(255,255,255,0.85)"; }}
+              onClick={() => scrollTo("about-section")}
+            >Our Story →</button>
           </div>
 
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "1.5rem", flexWrap: "wrap", animation: "fadeInUp 0.55s ease 0.4s both" }}>
-            {["🌅 Baked Fresh Daily", "🚚 Tbilisi Delivery", "💝 Homemade with Love", "🎂 Custom Orders"].map((tag) => (
-              <span key={tag} style={{ color: "rgba(255,255,255,0.45)", fontSize: "0.78rem", letterSpacing: "0.04em" }}>{tag}</span>
+          {/* Stats row */}
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "0", flexWrap: "wrap", animation: "fadeInUp 0.55s ease 0.4s both", background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: "18px", padding: "1rem 2rem", maxWidth: "560px", margin: "0 auto" }}>
+            {[
+              ["500+", "Happy Customers"],
+              ["2,000+", "Orders Delivered"],
+              ["4.9★", "Average Rating"],
+              ["100%", "Homemade"],
+            ].map(([num, label], i) => (
+              <div key={label} style={{ flex: "1", textAlign: "center", padding: "0 0.8rem", borderRight: i < 3 ? "1px solid rgba(255,255,255,0.1)" : "none", minWidth: "80px" }}>
+                <div style={{ fontFamily: "'Playfair Display', serif", color: "white", fontWeight: "700", fontSize: "1.15rem", lineHeight: 1 }}>{num}</div>
+                <div style={{ color: "rgba(255,255,255,0.35)", fontSize: "0.65rem", marginTop: "3px", letterSpacing: "0.03em" }}>{label}</div>
+              </div>
             ))}
           </div>
         </div>
@@ -167,10 +180,10 @@ export default function Shop() {
       <section style={{ background: "var(--feature-bg)", borderTop: "1px solid var(--border)", borderBottom: "1px solid var(--border)" }}>
         <div style={{ maxWidth: "1280px", margin: "0 auto", display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))" }}>
           {[
-            { icon: "🌅", title: "Baked Fresh Daily", desc: "Prepared every morning — never frozen, never pre-made", color: "#ff9800" },
-            { icon: "🚚", title: "City-Wide Delivery", desc: "We deliver across Tbilisi within 45–75 minutes", color: "#d4235e" },
-            { icon: "💝", title: "Handmade with Love", desc: "Traditional Georgian recipes, locally-sourced ingredients", color: "#e91e63" },
-            { icon: "🎂", title: "Custom Orders", desc: "Birthdays, weddings, corporate events — we do it all", color: "#9c27b0" },
+            { icon: "🌅", title: "Fresh Every Morning", desc: "Baked daily, never frozen. Order by 3PM for same-day delivery.", color: "#ff9800" },
+            { icon: "🚚", title: "Tbilisi Delivery", desc: "We deliver to Vake, Saburtalo, Vera, Mtatsminda & more.", color: "#d4235e" },
+            { icon: "💝", title: "100% Homemade", desc: "Real Georgian recipes, local ingredients — no shortcuts.", color: "#e91e63" },
+            { icon: "📱", title: "WhatsApp Orders", desc: "Custom cakes & bulk orders — just message us directly.", color: "#9c27b0" },
           ].map((f, i) => <FeatureCard key={f.title} f={f} hasBorder={i < 3} />)}
         </div>
       </section>
@@ -248,6 +261,64 @@ export default function Shop() {
         )}
       </main>
 
+      {/* ── Testimonials ── */}
+      <section style={{ background: "var(--bg-card)", borderTop: "1px solid var(--border)", padding: "5rem 2rem" }}>
+        <div style={{ maxWidth: "1100px", margin: "0 auto" }}>
+          <div style={{ textAlign: "center", marginBottom: "3.5rem" }}>
+            <p style={{ color: "var(--accent)", fontSize: "0.65rem", letterSpacing: "0.25em", fontWeight: "700", textTransform: "uppercase", marginBottom: "0.5rem" }}>WHAT PEOPLE SAY</p>
+            <h2 style={{ fontFamily: "'Playfair Display', serif", fontSize: "clamp(1.5rem, 3vw, 2rem)", fontWeight: "700", color: "var(--text)" }}>Our customers say it best</h2>
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: "1.5rem" }}>
+            {[
+              { name: "Nino Kvaratskhelia", location: "Vake, Tbilisi", review: "The birthday cake was absolutely stunning — everyone at the party couldn't believe it was homemade. Ordered for the second time already, will not stop! 🎂", rating: 5, order: "Custom Birthday Cake" },
+              { name: "Mariam Gabaidze", location: "Saburtalo, Tbilisi", review: "I've been ordering every week for three months. The pastries are better than any café in the city. Fresh, real ingredients — you taste the difference immediately.", rating: 5, order: "Weekly Pastry Box" },
+              { name: "Khatia Ioseliani", location: "Vera, Tbilisi", review: "Ordered chocolate truffles for the office. They disappeared in under 10 minutes. My colleagues are already asking me for the contact number! 🍫", rating: 5, order: "Chocolate Truffles" },
+            ].map((t) => (
+              <div key={t.name} style={{ background: "var(--bg)", border: "1px solid var(--border)", borderRadius: "20px", padding: "1.8rem", position: "relative" }}>
+                <div style={{ position: "absolute", top: "1.4rem", right: "1.6rem", fontSize: "2rem", color: "var(--accent)", opacity: 0.15, fontFamily: "serif", lineHeight: 1 }}>"</div>
+                <div style={{ display: "flex", gap: "0.3rem", marginBottom: "1rem" }}>
+                  {"⭐".repeat(t.rating).split("").map((s, i) => <span key={i} style={{ fontSize: "0.85rem" }}>⭐</span>)}
+                </div>
+                <p style={{ color: "var(--text)", fontSize: "0.92rem", lineHeight: 1.75, marginBottom: "1.4rem", fontStyle: "italic" }}>"{t.review}"</p>
+                <div style={{ display: "flex", alignItems: "center", gap: "0.8rem" }}>
+                  <div style={{ width: "38px", height: "38px", borderRadius: "50%", background: "linear-gradient(135deg, #d4235e, #a01848)", display: "flex", alignItems: "center", justifyContent: "center", color: "white", fontWeight: "700", fontSize: "0.9rem", flexShrink: 0 }}>{t.name[0]}</div>
+                  <div>
+                    <div style={{ fontWeight: "700", fontSize: "0.85rem", color: "var(--text)" }}>{t.name}</div>
+                    <div style={{ color: "var(--text-muted)", fontSize: "0.72rem" }}>{t.location} · {t.order}</div>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── Instagram CTA ── */}
+      <section style={{ background: "linear-gradient(135deg, #1c0f18 0%, #2a0e20 100%)", padding: "4rem 2rem", borderTop: "1px solid rgba(255,255,255,0.05)" }}>
+        <div style={{ maxWidth: "680px", margin: "0 auto", textAlign: "center" }}>
+          <div style={{ width: "52px", height: "52px", margin: "0 auto 1.2rem", borderRadius: "16px", background: "linear-gradient(135deg, #f09433, #e6683c, #dc2743, #cc2366, #bc1888)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "1.6rem", boxShadow: "0 8px 24px rgba(220,39,67,0.35)" }}>📸</div>
+          <h2 style={{ fontFamily: "'Playfair Display', serif", color: "white", fontSize: "clamp(1.4rem, 3vw, 1.9rem)", fontWeight: "700", marginBottom: "0.7rem" }}>Follow us on Instagram</h2>
+          <p style={{ color: "rgba(255,255,255,0.45)", fontSize: "0.93rem", lineHeight: 1.7, marginBottom: "1.6rem" }}>
+            See what's fresh today, get inspired, and share your order — we post every day.
+          </p>
+          <a
+            href="https://www.instagram.com/tamaracook.ink"
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{ display: "inline-flex", alignItems: "center", gap: "0.6rem", background: "linear-gradient(135deg, #f09433, #dc2743, #bc1888)", color: "white", border: "none", padding: "0.85rem 2.2rem", borderRadius: "50px", fontSize: "0.95rem", fontWeight: "700", textDecoration: "none", boxShadow: "0 8px 24px rgba(220,39,67,0.35)", transition: "transform 0.2s, box-shadow 0.2s" }}
+            onMouseEnter={e => { e.currentTarget.style.transform = "translateY(-2px)"; e.currentTarget.style.boxShadow = "0 14px 32px rgba(220,39,67,0.48)"; }}
+            onMouseLeave={e => { e.currentTarget.style.transform = ""; e.currentTarget.style.boxShadow = "0 8px 24px rgba(220,39,67,0.35)"; }}
+          >
+            📸 @tamaracook.ink
+          </a>
+          <div style={{ display: "flex", justifyContent: "center", gap: "0.5rem", marginTop: "2rem", flexWrap: "wrap" }}>
+            {["🎂", "🍰", "🥐", "🍫", "🧁", "🍪", "🎉", "💝"].map((e, i) => (
+              <div key={i} style={{ width: "64px", height: "64px", borderRadius: "12px", background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.07)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "1.8rem" }}>{e}</div>
+            ))}
+          </div>
+        </div>
+      </section>
+
       {/* ── About ── */}
       <section style={{ background: "var(--bg-card)", borderTop: "1px solid var(--border)", padding: "6rem 2rem" }} id="about-section">
         <div style={{ maxWidth: "1100px", margin: "0 auto", display: "grid", gridTemplateColumns: "1fr 1fr", gap: "5rem", alignItems: "center" }}>
@@ -316,19 +387,21 @@ export default function Shop() {
         <div style={{ maxWidth: "620px", margin: "0 auto", position: "relative", zIndex: 1 }}>
           <div style={{ width: "60px", height: "60px", background: "rgba(212,35,94,0.2)", border: "1px solid rgba(212,35,94,0.35)", borderRadius: "18px", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "1.8rem", margin: "0 auto 1.6rem" }}>🍰</div>
           <h2 style={{ fontFamily: "'Playfair Display', serif", color: "white", fontSize: "clamp(1.6rem, 3.5vw, 2.2rem)", fontWeight: "700", marginBottom: "1rem" }}>Ready to order something special?</h2>
-          <p style={{ color: "rgba(255,255,255,0.45)", fontSize: "0.97rem", lineHeight: 1.75, marginBottom: "2.5rem" }}>Browse our menu and place your order online — or call us for custom requests and bulk orders</p>
-          <div style={{ display: "flex", gap: "1rem", justifyContent: "center", flexWrap: "wrap" }}>
+          <p style={{ color: "rgba(255,255,255,0.45)", fontSize: "0.97rem", lineHeight: 1.75, marginBottom: "2.5rem" }}>Order online or message us on WhatsApp for custom cakes, bulk orders, and event catering</p>
+          <div style={{ display: "flex", gap: "1rem", justifyContent: "center", flexWrap: "wrap", marginBottom: "1.2rem" }}>
             <button
               style={{ background: "#d4235e", border: "none", color: "white", padding: "1rem 2.4rem", borderRadius: "50px", fontSize: "0.97rem", fontWeight: "700", cursor: "pointer", boxShadow: "0 8px 28px rgba(212,35,94,0.4)", transition: "transform 0.2s, box-shadow 0.2s" }}
               onMouseEnter={e => { e.currentTarget.style.transform = "translateY(-2px)"; e.currentTarget.style.boxShadow = "0 14px 36px rgba(212,35,94,0.55)"; }}
               onMouseLeave={e => { e.currentTarget.style.transform = ""; e.currentTarget.style.boxShadow = "0 8px 28px rgba(212,35,94,0.4)"; }}
-              onClick={scrollToMenu}
-            >Order Online</button>
-            <a href="tel:+995555942959" style={{ background: "transparent", border: "1.5px solid rgba(255,255,255,0.25)", color: "rgba(255,255,255,0.88)", padding: "1rem 2.4rem", borderRadius: "50px", fontSize: "0.97rem", fontWeight: "500", textDecoration: "none", display: "inline-flex", alignItems: "center", gap: "0.4rem", transition: "border-color 0.2s" }}
-              onMouseEnter={e => e.currentTarget.style.borderColor = "rgba(255,255,255,0.55)"}
-              onMouseLeave={e => e.currentTarget.style.borderColor = "rgba(255,255,255,0.25)"}
-            >📞 Call Us Now</a>
+              onClick={() => navigate("/menu")}
+            >🛒 Order Online</button>
+            <a href="https://wa.me/995555942959?text=გამარჯობა! მინდა შეკვეთა გავაკეთო" target="_blank" rel="noopener noreferrer"
+              style={{ background: "#25D366", border: "none", color: "white", padding: "1rem 2.4rem", borderRadius: "50px", fontSize: "0.97rem", fontWeight: "700", textDecoration: "none", display: "inline-flex", alignItems: "center", gap: "0.5rem", boxShadow: "0 8px 24px rgba(37,211,102,0.35)", transition: "transform 0.2s" }}
+              onMouseEnter={e => e.currentTarget.style.transform = "translateY(-2px)"}
+              onMouseLeave={e => e.currentTarget.style.transform = ""}
+            >💬 WhatsApp Us</a>
           </div>
+          <a href="tel:+995555942959" style={{ color: "rgba(255,255,255,0.3)", fontSize: "0.85rem", textDecoration: "none" }}>or call: +995 555 942 959</a>
         </div>
       </section>
 
@@ -340,35 +413,58 @@ export default function Shop() {
               <span style={{ fontSize: "1.9rem" }}>🍰</span>
               <div>
                 <div style={{ fontFamily: "'Playfair Display', serif", color: "white", fontSize: "1.1rem", fontWeight: "700" }}>საკონდიტრო</div>
-                <div style={{ color: "rgba(255,255,255,0.25)", fontSize: "0.56rem", letterSpacing: "0.18em", textTransform: "uppercase" }}>Artisan Bakery · Tbilisi</div>
+                <div style={{ color: "rgba(255,255,255,0.25)", fontSize: "0.56rem", letterSpacing: "0.18em", textTransform: "uppercase" }}>Tamara's Homemade Bakery · Tbilisi</div>
               </div>
             </div>
-            <p style={{ color: "rgba(255,255,255,0.28)", fontSize: "0.82rem", lineHeight: 1.75, maxWidth: "220px" }}>Making every celebration sweeter since 2021. Handcrafted with love in the heart of Tbilisi.</p>
+            <p style={{ color: "rgba(255,255,255,0.28)", fontSize: "0.82rem", lineHeight: 1.8, maxWidth: "230px", marginBottom: "1.2rem" }}>Making every celebration sweeter since 2021. Handcrafted with love in the heart of Tbilisi.</p>
+            {/* Social icons */}
+            <div style={{ display: "flex", gap: "0.6rem" }}>
+              <a href="https://www.instagram.com/tamaracook.ink" target="_blank" rel="noopener noreferrer"
+                style={{ width: "34px", height: "34px", borderRadius: "10px", background: "linear-gradient(135deg, #f09433, #dc2743, #bc1888)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "0.9rem", textDecoration: "none" }}>📸</a>
+              <a href="https://wa.me/995555942959" target="_blank" rel="noopener noreferrer"
+                style={{ width: "34px", height: "34px", borderRadius: "10px", background: "#25D366", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "0.9rem", textDecoration: "none" }}>💬</a>
+            </div>
           </div>
           <div>
-            <p style={s.footerHeading}>Hours</p>
+            <p style={s.footerHeading}>Working Hours</p>
             <p style={s.footerLine}>Mon – Fri: 9:00 – 20:00</p>
             <p style={s.footerLine}>Saturday: 10:00 – 19:00</p>
-            <p style={s.footerLine}>Sunday: Closed</p>
+            <p style={{ ...s.footerLine, color: "rgba(255,255,255,0.18)" }}>Sunday: Closed</p>
+            <div style={{ marginTop: "0.8rem", background: "rgba(212,35,94,0.1)", border: "1px solid rgba(212,35,94,0.2)", borderRadius: "8px", padding: "0.5rem 0.75rem" }}>
+              <p style={{ color: "#f4a3b8", fontSize: "0.7rem", fontWeight: "600" }}>🕐 Order before 3PM</p>
+              <p style={{ color: "rgba(255,255,255,0.3)", fontSize: "0.66rem" }}>for same-day delivery</p>
+            </div>
           </div>
           <div>
             <p style={s.footerHeading}>Contact</p>
             <a href="tel:+995555942959" style={s.footerLink}>📞 +995 555 942 959</a>
+            <a href="https://wa.me/995555942959" target="_blank" rel="noopener noreferrer" style={s.footerLink}>💬 WhatsApp us</a>
+            <a href="https://www.instagram.com/tamaracook.ink" target="_blank" rel="noopener noreferrer" style={s.footerLink}>📸 @tamaracook.ink</a>
             <p style={s.footerLine}>📍 Tbilisi, Georgia</p>
-            <p style={s.footerLine}>🚚 City-wide delivery</p>
           </div>
           <div>
-            <p style={s.footerHeading}>Quick Links</p>
-            <button style={s.footerNavBtn} onClick={scrollToMenu}>View Menu</button>
-            <button style={s.footerNavBtn} onClick={() => userEmail ? setProfileOpen(true) : setAuthOpen(true)}>{userEmail ? "My Profile" : "Sign In"}</button>
-            {isAdmin && <button style={s.footerNavBtn} onClick={() => navigate("/admin")}>Admin Panel</button>}
-            <button style={s.footerNavBtn} onClick={toggle}>{isDark ? "☀️ Light Mode" : "🌙 Dark Mode"}</button>
+            <p style={s.footerHeading}>Delivery Areas</p>
+            {["Vake", "Saburtalo", "Vera", "Mtatsminda", "Nadzaladevi", "Isani", "Ortachala"].map((area) => (
+              <p key={area} style={{ ...s.footerLine, display: "flex", alignItems: "center", gap: "0.4rem" }}>
+                <span style={{ color: "#d4235e", fontSize: "0.6rem" }}>●</span> {area}
+              </p>
+            ))}
+            <p style={{ color: "rgba(255,255,255,0.2)", fontSize: "0.7rem", marginTop: "0.5rem" }}>Other areas — call us</p>
           </div>
         </div>
-        <div style={{ maxWidth: "1280px", margin: "0 auto", padding: "1.6rem 0", display: "flex", justifyContent: "center" }}>
-          <span style={{ color: "rgba(255,255,255,0.14)", fontSize: "0.76rem" }}>© 2024 საკონდიტრო — Made with ❤️ in Tbilisi, Georgia</span>
+        <div style={{ maxWidth: "1280px", margin: "0 auto", padding: "1.6rem 0", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "0.5rem" }}>
+          <span style={{ color: "rgba(255,255,255,0.14)", fontSize: "0.76rem" }}>© 2025 საკონდიტრო — Tamara's Homemade Bakery, Tbilisi</span>
+          <button style={{ background: "none", border: "none", color: "rgba(255,255,255,0.2)", cursor: "pointer", fontSize: "0.75rem" }} onClick={toggle}>{isDark ? "☀️ Light mode" : "🌙 Dark mode"}</button>
         </div>
       </footer>
+
+      {/* WhatsApp float button */}
+      <a href="https://wa.me/995555942959?text=გამარჯობა! მინდა შეკვეთა გავაკეთო" target="_blank" rel="noopener noreferrer"
+        style={{ position: "fixed", bottom: "1.6rem", right: "1.6rem", zIndex: 90, width: "54px", height: "54px", borderRadius: "50%", background: "#25D366", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "1.55rem", boxShadow: "0 6px 24px rgba(37,211,102,0.45)", textDecoration: "none", transition: "transform 0.2s, box-shadow 0.2s" }}
+        onMouseEnter={e => { e.currentTarget.style.transform = "scale(1.1)"; e.currentTarget.style.boxShadow = "0 10px 32px rgba(37,211,102,0.6)"; }}
+        onMouseLeave={e => { e.currentTarget.style.transform = ""; e.currentTarget.style.boxShadow = "0 6px 24px rgba(37,211,102,0.45)"; }}
+        title="Order via WhatsApp"
+      >💬</a>
 
       {/* Modals */}
       {cartOpen && <Cart cart={cart} setCart={setCart} onClose={() => setCartOpen(false)} onOrder={() => { setCartOpen(false); setOrderOpen(true); }} />}
