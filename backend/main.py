@@ -3,6 +3,7 @@ import base64
 import random
 import string
 import resend
+import httpx
 from datetime import datetime, timezone, timedelta
 from fastapi import FastAPI, Depends, HTTPException, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
@@ -29,6 +30,8 @@ with engine.connect() as _conn:
     _conn.execute(text("ALTER TABLE products ADD COLUMN IF NOT EXISTS image_data TEXT"))
     _conn.execute(text("ALTER TABLE products ADD COLUMN IF NOT EXISTS sale_price NUMERIC"))
     _conn.execute(text("ALTER TABLE products ADD COLUMN IF NOT EXISTS category VARCHAR"))
+    _conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS push_token VARCHAR"))
+    _conn.execute(text("ALTER TABLE orders ADD COLUMN IF NOT EXISTS delivery_photo_data TEXT"))
     _conn.execute(text("""
         CREATE TABLE IF NOT EXISTS otp_codes (
             id SERIAL PRIMARY KEY,
@@ -101,6 +104,9 @@ class SendOtp(BaseModel):
 class VerifyOtp(BaseModel):
     email: str
     code: str
+
+class PushTokenUpdate(BaseModel):
+    push_token: str
 
 
 # ── Helpers ────────────────────────────────────────────────────────────────────
@@ -196,6 +202,44 @@ def send_order_email(to_email: str, customer_name: str, order_code: str, email_t
         pass
 
 
+def send_push(token: str, title: str, body: str, data: dict = None):
+    if not token:
+        return
+    try:
+        httpx.post(
+            "https://exp.host/--/api/v2/push/send",
+            json={"to": token, "title": title, "body": body, "data": data or {}},
+            headers={"Content-Type": "application/json", "Accept": "application/json"},
+            timeout=10,
+        )
+    except Exception:
+        pass
+
+
+def notify_role_push(db: Session, role_column: str, title: str, body: str, data: dict = None):
+    users = db.query(User).filter(getattr(User, role_column) == True, User.push_token.isnot(None)).all()
+    for u in users:
+        send_push(u.push_token, title, body, data)
+
+
+STATUS_PUSH_TEXT = {
+    "confirmed":        ("Order Confirmed! ✅", "Your order is confirmed and being prepared."),
+    "out_for_delivery": ("On Its Way! 🚚", "Your order has been picked up and is heading to you."),
+    "ready":            ("Ready for Pickup! 🏠", "Your order is ready to be picked up."),
+    "delivered":        ("Delivered! 💕", "Your order has been delivered. Enjoy!"),
+    "cancelled":        ("Order Cancelled 😔", "Your order has been cancelled."),
+}
+
+def notify_customer_status(db: Session, order: Order, status: str):
+    if not order.user_id or status not in STATUS_PUSH_TEXT:
+        return
+    user = db.query(User).filter(User.id == order.user_id).first()
+    if not user or not user.push_token:
+        return
+    title, body = STATUS_PUSH_TEXT[status]
+    send_push(user.push_token, title, body, {"order_id": order.id, "order_code": order.order_code})
+
+
 # ── OTP ────────────────────────────────────────────────────────────────────────
 
 @app.post("/api/otp/send")
@@ -264,6 +308,12 @@ def login(data: Login, db: Session = Depends(get_db)):
         raise HTTPException(status_code=401, detail="Invalid email or password")
     return user_response(user, create_token(user.id))
 
+@app.post("/api/me/push-token")
+def update_push_token(data: PushTokenUpdate, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    current_user.push_token = data.push_token
+    db.commit()
+    return {"message": "Push token saved"}
+
 
 # ── Public ─────────────────────────────────────────────────────────────────────
 
@@ -283,6 +333,11 @@ def create_order(order: OrderCreate, db: Session = Depends(get_db), current_user
         "placed",
         order.items,
         str(order.total),
+    )
+    notify_role_push(
+        db, "is_admin", "New Order! 🍰",
+        f"{order.customer_name} placed an order for ₾{order.total}",
+        {"order_id": db_order.id, "order_code": code},
     )
     return {"message": "Order placed!", "id": db_order.id, "order_code": code}
 
@@ -320,7 +375,21 @@ def delivery_update_status(order_id: int, data: OrderStatusUpdate, db: Session =
         raise HTTPException(status_code=404, detail="Order not found")
     order.status = data.status
     db.commit()
+    notify_customer_status(db, order, data.status)
     return {"message": "Status updated"}
+
+@app.post("/api/delivery/orders/{order_id}/photo")
+async def upload_delivery_photo(order_id: int, file: UploadFile = File(...), db: Session = Depends(get_db), user: User = Depends(require_delivery)):
+    order = db.query(Order).filter(Order.id == order_id, Order.order_type == "delivery").first()
+    if not order:
+        raise HTTPException(status_code=404, detail="Order not found")
+    contents = await file.read()
+    if len(contents) > 8 * 1024 * 1024:
+        raise HTTPException(status_code=400, detail="Image too large. Max 8 MB.")
+    mime = file.content_type or "image/jpeg"
+    order.delivery_photo_data = f"data:{mime};base64,{base64.b64encode(contents).decode()}"
+    db.commit()
+    return {"message": "Photo uploaded", "id": order.id}
 
 
 # ── Admin: Products ────────────────────────────────────────────────────────────
@@ -402,6 +471,13 @@ def admin_update_order_status(order_id: int, data: OrderStatusUpdate, db: Sessio
         order.items,
         str(order.total),
     )
+    notify_customer_status(db, order, data.status)
+    if data.status == "confirmed" and order.order_type == "delivery":
+        notify_role_push(
+            db, "is_delivery", "New Delivery Ready! 🚚",
+            f"Order #{order.order_code} is ready for pickup",
+            {"order_id": order.id, "order_code": order.order_code},
+        )
     return {"message": "Status updated"}
 
 @app.delete("/api/admin/orders/{order_id}", dependencies=[Depends(require_admin)])

@@ -10,6 +10,7 @@ class User(Base):
     password = Column(String, nullable=False)
     is_admin = Column(Boolean, default=False)
     is_delivery = Column(Boolean, default=False)
+    push_token = Column(String, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
 
@@ -39,6 +40,7 @@ class Order(Base):
     status = Column(String, default="pending")
     order_code = Column(String, nullable=True)
     customer_email = Column(String, nullable=True)
+    delivery_photo_data = Column(Text, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
 
