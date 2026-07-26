@@ -9,6 +9,10 @@ import ProductModal from "../components/ProductModal";
 
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "";
 
+// NOTE: EAS build artifact links expire after ~30 days. Update this after every new APK build
+// (get the fresh link with `eas build:list --limit 1 --platform android` in sakonditro_phoneapp).
+const ANDROID_APK_URL = "https://expo.dev/artifacts/eas/cK54BFlegBQWZG15sS6g8xO3t398-tcI8DgMHhm8XtM.apk";
+
 
 export default function Shop() {
   const { isDark, toggle } = useTheme();
@@ -27,14 +31,32 @@ export default function Shop() {
   const [scrolled, setScrolled] = useState(false);
   const [addedIds, setAddedIds] = useState(new Set());
   const [selectedProduct, setSelectedProduct] = useState(null);
+  const [settings, setSettings] = useState({});
+  const [mobileBanner, setMobileBanner] = useState(null); // "android" | "ios" | null
   const menuRef = useRef(null);
   const navigate = useNavigate();
+
+  useEffect(() => {
+    if (sessionStorage.getItem("hide_app_banner")) return;
+    const ua = navigator.userAgent || "";
+    if (/Android/i.test(ua)) setMobileBanner("android");
+    else if (/iPhone|iPad|iPod/i.test(ua)) setMobileBanner("ios");
+  }, []);
+
+  const dismissMobileBanner = () => {
+    sessionStorage.setItem("hide_app_banner", "1");
+    setMobileBanner(null);
+  };
 
   useEffect(() => {
     fetch(`${BACKEND_URL}/api/products`)
       .then((r) => r.json())
       .then((data) => { setProducts(Array.isArray(data) ? data : []); setLoading(false); })
       .catch(() => setLoading(false));
+    fetch(`${BACKEND_URL}/api/settings`)
+      .then((r) => r.json())
+      .then(setSettings)
+      .catch(() => {});
     const onScroll = () => setScrolled(window.scrollY > 40);
     window.addEventListener("scroll", onScroll);
     return () => window.removeEventListener("scroll", onScroll);
@@ -59,6 +81,25 @@ export default function Shop() {
 
   return (
     <div style={{ minHeight: "100vh", fontFamily: "'Inter', sans-serif", background: "var(--bg)" }}>
+
+      {/* ── Mobile app banner ── */}
+      {mobileBanner && (
+        <div style={{ background: "linear-gradient(135deg, #1c0f18, #2e1226)", borderBottom: "1px solid rgba(212,35,94,0.25)", padding: "0.75rem 1rem", display: "flex", alignItems: "center", justifyContent: "center", gap: "0.8rem", flexWrap: "wrap", position: "relative" }}>
+          <span style={{ color: "rgba(255,255,255,0.85)", fontSize: "0.82rem", textAlign: "center" }}>
+            📱 {mobileBanner === "android" ? "Get our app for a better experience" : "Our app isn't on iPhone yet — you can still order below"}
+          </span>
+          <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap", justifyContent: "center" }}>
+            {mobileBanner === "android" && (
+              <a href={ANDROID_APK_URL} style={{ background: "#d4235e", color: "white", fontSize: "0.78rem", fontWeight: "700", padding: "0.4rem 1rem", borderRadius: "50px", textDecoration: "none" }}>
+                Download App
+              </a>
+            )}
+            <button onClick={dismissMobileBanner} style={{ background: "rgba(255,255,255,0.1)", border: "1px solid rgba(255,255,255,0.18)", color: "rgba(255,255,255,0.75)", fontSize: "0.78rem", fontWeight: "600", padding: "0.4rem 1rem", borderRadius: "50px", cursor: "pointer" }}>
+              Continue in Browser
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* ── Header ── */}
       <header style={{
@@ -255,14 +296,14 @@ export default function Shop() {
             See what's fresh today, get inspired, and share your order — we post every day.
           </p>
           <a
-            href="https://www.instagram.com/tamaracook.ink"
+            href="https://www.instagram.com/tamaras_kulinariuli_blogi/"
             target="_blank"
             rel="noopener noreferrer"
             style={{ display: "inline-flex", alignItems: "center", gap: "0.6rem", background: "linear-gradient(135deg, #f09433, #dc2743, #bc1888)", color: "white", border: "none", padding: "0.85rem 2.2rem", borderRadius: "50px", fontSize: "0.95rem", fontWeight: "700", textDecoration: "none", boxShadow: "0 8px 24px rgba(220,39,67,0.35)", transition: "transform 0.2s, box-shadow 0.2s" }}
             onMouseEnter={e => { e.currentTarget.style.transform = "translateY(-2px)"; e.currentTarget.style.boxShadow = "0 14px 32px rgba(220,39,67,0.48)"; }}
             onMouseLeave={e => { e.currentTarget.style.transform = ""; e.currentTarget.style.boxShadow = "0 8px 24px rgba(220,39,67,0.35)"; }}
           >
-            📸 @tamaracook.ink
+            📸 @tamaras_kulinariuli_blogi
           </a>
           <div style={{ display: "flex", justifyContent: "center", gap: "0.5rem", marginTop: "2rem", flexWrap: "wrap" }}>
             {["🎂", "🍰", "🥐", "🍫", "🧁", "🍪", "🎉", "💝"].map((e, i) => (
@@ -372,7 +413,7 @@ export default function Shop() {
             <p style={{ color: "rgba(255,255,255,0.28)", fontSize: "0.82rem", lineHeight: 1.8, maxWidth: "230px", marginBottom: "1.2rem" }}>Making every celebration sweeter since 2021. Handcrafted with love in the heart of Tbilisi.</p>
             {/* Social icons */}
             <div style={{ display: "flex", gap: "0.6rem" }}>
-              <a href="https://www.instagram.com/tamaracook.ink" target="_blank" rel="noopener noreferrer"
+              <a href="https://www.instagram.com/tamaras_kulinariuli_blogi/" target="_blank" rel="noopener noreferrer"
                 style={{ width: "34px", height: "34px", borderRadius: "10px", background: "linear-gradient(135deg, #f09433, #dc2743, #bc1888)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "0.9rem", textDecoration: "none" }}>📸</a>
               <a href="https://wa.me/995555942959" target="_blank" rel="noopener noreferrer"
                 style={{ width: "34px", height: "34px", borderRadius: "10px", background: "#25D366", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "0.9rem", textDecoration: "none" }}>💬</a>
@@ -380,9 +421,11 @@ export default function Shop() {
           </div>
           <div>
             <p style={s.footerHeading}>Working Hours</p>
-            <p style={s.footerLine}>Mon – Fri: 9:00 – 20:00</p>
-            <p style={s.footerLine}>Saturday: 10:00 – 19:00</p>
-            <p style={{ ...s.footerLine, color: "rgba(255,255,255,0.18)" }}>Sunday: Closed</p>
+            <p style={s.footerLine}>Mon – Fri: {settings.weekdays_open || "9:00"} – {settings.weekdays_close || "20:00"}</p>
+            <p style={s.footerLine}>Saturday: {settings.saturday_open || "10:00"} – {settings.saturday_close || "19:00"}</p>
+            <p style={{ ...s.footerLine, color: "rgba(255,255,255,0.18)" }}>
+              Sunday: {(settings.sunday_open && settings.sunday_close) ? `${settings.sunday_open} – ${settings.sunday_close}` : "Closed"}
+            </p>
             <div style={{ marginTop: "0.8rem", background: "rgba(212,35,94,0.1)", border: "1px solid rgba(212,35,94,0.2)", borderRadius: "8px", padding: "0.5rem 0.75rem" }}>
               <p style={{ color: "#f4a3b8", fontSize: "0.7rem", fontWeight: "600" }}>🕐 Order before 3PM</p>
               <p style={{ color: "rgba(255,255,255,0.3)", fontSize: "0.66rem" }}>for same-day delivery</p>
@@ -392,7 +435,7 @@ export default function Shop() {
             <p style={s.footerHeading}>Contact</p>
             <a href="tel:+995555942959" style={s.footerLink}>📞 +995 555 942 959</a>
             <a href="https://wa.me/995555942959" target="_blank" rel="noopener noreferrer" style={s.footerLink}>💬 WhatsApp us</a>
-            <a href="https://www.instagram.com/tamaracook.ink" target="_blank" rel="noopener noreferrer" style={s.footerLink}>📸 @tamaracook.ink</a>
+            <a href="https://www.instagram.com/tamaras_kulinariuli_blogi/" target="_blank" rel="noopener noreferrer" style={s.footerLink}>📸 @tamaras_kulinariuli_blogi</a>
             <p style={s.footerLine}>📍 Tbilisi, Georgia</p>
           </div>
           <div>

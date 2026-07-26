@@ -12,7 +12,7 @@ from sqlalchemy import text
 from pydantic import BaseModel
 from typing import Optional
 from database import Base, engine, get_db
-from models import Product, Order, User, OtpCode
+from models import Product, Order, User, OtpCode, ShopSettings
 from auth import hash_password, verify_password, create_token, get_current_user, get_current_user_optional, require_admin, require_delivery
 
 Base.metadata.create_all(bind=engine)
@@ -40,6 +40,22 @@ with engine.connect() as _conn:
             expires_at TIMESTAMP WITH TIME ZONE NOT NULL,
             used BOOLEAN DEFAULT FALSE,
             created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+        )
+    """))
+    _conn.execute(text("""
+        CREATE TABLE IF NOT EXISTS shop_settings (
+            id SERIAL PRIMARY KEY,
+            shop_name VARCHAR,
+            phone VARCHAR,
+            address VARCHAR,
+            pickup_note VARCHAR,
+            weekdays_open VARCHAR,
+            weekdays_close VARCHAR,
+            saturday_open VARCHAR,
+            saturday_close VARCHAR,
+            sunday_open VARCHAR,
+            sunday_close VARCHAR,
+            updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
         )
     """))
     _conn.commit()
@@ -107,6 +123,18 @@ class VerifyOtp(BaseModel):
 
 class PushTokenUpdate(BaseModel):
     push_token: str
+
+class ShopSettingsUpdate(BaseModel):
+    shop_name: Optional[str] = None
+    phone: Optional[str] = None
+    address: Optional[str] = None
+    pickup_note: Optional[str] = None
+    weekdays_open: Optional[str] = None
+    weekdays_close: Optional[str] = None
+    saturday_open: Optional[str] = None
+    saturday_close: Optional[str] = None
+    sunday_open: Optional[str] = None
+    sunday_close: Optional[str] = None
 
 
 # ── Helpers ────────────────────────────────────────────────────────────────────
@@ -353,6 +381,30 @@ def my_orders(db: Session = Depends(get_db), current_user=Depends(get_current_us
 @app.get("/api/health")
 def health():
     return {"status": "ok"}
+
+@app.get("/api/settings")
+def get_settings(db: Session = Depends(get_db)):
+    settings = db.query(ShopSettings).first()
+    if not settings:
+        return {}
+    return {
+        "shop_name": settings.shop_name, "phone": settings.phone,
+        "address": settings.address, "pickup_note": settings.pickup_note,
+        "weekdays_open": settings.weekdays_open, "weekdays_close": settings.weekdays_close,
+        "saturday_open": settings.saturday_open, "saturday_close": settings.saturday_close,
+        "sunday_open": settings.sunday_open, "sunday_close": settings.sunday_close,
+    }
+
+@app.put("/api/settings", dependencies=[Depends(require_admin)])
+def update_settings(data: ShopSettingsUpdate, db: Session = Depends(get_db)):
+    settings = db.query(ShopSettings).first()
+    if not settings:
+        settings = ShopSettings()
+        db.add(settings)
+    for k, v in data.model_dump(exclude_none=True).items():
+        setattr(settings, k, v)
+    db.commit()
+    return {"message": "Settings updated"}
 
 
 # ── Delivery ───────────────────────────────────────────────────────────────────

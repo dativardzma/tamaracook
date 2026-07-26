@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useIsMobile } from "../hooks/useIsMobile";
 
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "";
 
@@ -31,6 +32,8 @@ export default function Delivery() {
   const token = localStorage.getItem("token");
   const driverEmail = localStorage.getItem("email");
   const headers = { "Content-Type": "application/json", Authorization: `Bearer ${token}` };
+  const isMobile = useIsMobile();
+  const [drawerOpen, setDrawerOpen] = useState(false);
 
   const load = () => {
     setLoading(true);
@@ -81,8 +84,16 @@ export default function Delivery() {
   return (
     <div style={{ display: "flex", minHeight: "100vh", fontFamily: "'Inter', sans-serif" }}>
 
+      {/* ── Mobile overlay ── */}
+      {isMobile && drawerOpen && (
+        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.55)", zIndex: 44 }} onClick={() => setDrawerOpen(false)} />
+      )}
+
       {/* ── Sidebar ── */}
-      <aside style={{ width: "260px", background: "linear-gradient(180deg, #1c0f18 0%, #2a1020 50%, #1c0f18 100%)", display: "flex", flexDirection: "column", position: "fixed", top: 0, left: 0, bottom: 0, zIndex: 40, borderRight: "1px solid rgba(212,35,94,0.15)" }}>
+      <aside style={{
+        width: "260px", background: "linear-gradient(180deg, #1c0f18 0%, #2a1020 50%, #1c0f18 100%)", display: "flex", flexDirection: "column", position: "fixed", top: 0, left: 0, bottom: 0, zIndex: 45, borderRight: "1px solid rgba(212,35,94,0.15)",
+        ...(isMobile ? { transform: drawerOpen ? "translateX(0)" : "translateX(-100%)", transition: "transform 0.25s ease" } : {}),
+      }}>
 
         {/* Brand */}
         <div style={{ padding: "1.8rem 1.5rem 1.4rem", borderBottom: "1px solid rgba(255,255,255,0.06)", textAlign: "center" }}>
@@ -122,7 +133,7 @@ export default function Delivery() {
           ].map(([key, icon, label, count]) => (
             <button key={key}
               style={{ display: "flex", alignItems: "center", gap: "0.65rem", width: "100%", padding: "0.8rem 1rem", background: filter === key ? "linear-gradient(135deg, #d4235e, #a01848)" : "transparent", border: "none", color: filter === key ? "white" : "rgba(255,255,255,0.45)", borderRadius: "12px", cursor: "pointer", fontSize: "0.86rem", fontWeight: filter === key ? "600" : "500", marginBottom: "0.2rem", textAlign: "left", transition: "all 0.15s" }}
-              onClick={() => setFilter(key)}
+              onClick={() => { setFilter(key); if (isMobile) setDrawerOpen(false); }}
             >
               <span style={{ fontSize: "1rem" }}>{icon}</span>
               <span style={{ flex: 1 }}>{label}</span>
@@ -142,11 +153,15 @@ export default function Delivery() {
       </aside>
 
       {/* ── Main ── */}
-      <main style={{ flex: 1, marginLeft: "260px", background: "#0f0810", minHeight: "100vh" }}>
+      <main style={{ flex: 1, marginLeft: isMobile ? 0 : "260px", background: "#0f0810", minHeight: "100vh" }}>
 
         {/* Topbar */}
-        <header style={{ background: "rgba(28,15,24,0.95)", backdropFilter: "blur(20px)", borderBottom: "1px solid rgba(212,35,94,0.12)", padding: "1.2rem 2rem", display: "flex", justifyContent: "space-between", alignItems: "center", position: "sticky", top: 0, zIndex: 30 }}>
-          <div>
+        <header style={{ background: "rgba(28,15,24,0.95)", backdropFilter: "blur(20px)", borderBottom: "1px solid rgba(212,35,94,0.12)", padding: isMobile ? "1rem 1.2rem" : "1.2rem 2rem", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "0.6rem", position: "sticky", top: 0, zIndex: 30 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "0.9rem" }}>
+            {isMobile && (
+              <button style={{ background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.15)", color: "white", width: "38px", height: "38px", borderRadius: "10px", cursor: "pointer", fontSize: "1.1rem", flexShrink: 0 }} onClick={() => setDrawerOpen(true)}>☰</button>
+            )}
+            <div>
             <h1 style={{ fontFamily: "'Playfair Display', serif", fontSize: "1.3rem", fontWeight: "700", color: "white" }}>
               {filter === "active" ? "Active Orders" : "Completed Deliveries"}
             </h1>
@@ -154,6 +169,7 @@ export default function Delivery() {
               {displayed.length} order{displayed.length !== 1 ? "s" : ""}
               {filter === "active" && active.length > 0 && ` · ${readyCount} ready to pick up`}
             </p>
+            </div>
           </div>
           <button
             style={{ background: "rgba(212,35,94,0.12)", border: "1px solid rgba(212,35,94,0.25)", color: "#e87da0", padding: "0.5rem 1.1rem", borderRadius: "10px", cursor: "pointer", fontSize: "0.82rem", fontWeight: "500", display: "flex", alignItems: "center", gap: "0.4rem" }}
@@ -161,7 +177,7 @@ export default function Delivery() {
           >↻ Refresh</button>
         </header>
 
-        <div style={{ padding: "2rem" }}>
+        <div style={{ padding: isMobile ? "1.2rem" : "2rem" }}>
           {loading ? (
             <div style={{ textAlign: "center", padding: "6rem 2rem" }}>
               <div style={{ width: "40px", height: "40px", border: "3px solid rgba(212,35,94,0.2)", borderTop: "3px solid #d4235e", borderRadius: "50%", margin: "0 auto 1.5rem", animation: "spin 0.8s linear infinite" }} />

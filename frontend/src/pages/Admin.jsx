@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useIsMobile } from "../hooks/useIsMobile";
 
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "";
 
@@ -51,13 +52,14 @@ export default function Admin() {
   const [teamForm, setTeamForm] = useState({ email: "", password: "" });
   const [orderFilter, setOrderFilter] = useState("all");
   const [orderSearch, setOrderSearch] = useState("");
-  const [settings, setSettings] = useState(() => {
-    try { return JSON.parse(localStorage.getItem("shop_settings") || "{}"); } catch { return {}; }
-  });
+  const [settings, setSettings] = useState({});
+  const [settingsSaving, setSettingsSaving] = useState(false);
   const [loading, setLoading] = useState(false);
   const [msg, setMsg] = useState({ text: "", type: "success" });
   const uploadInputRefs = useRef({});
   const navigate = useNavigate();
+  const isMobile = useIsMobile();
+  const [drawerOpen, setDrawerOpen] = useState(false);
   const token = localStorage.getItem("token");
   const adminEmail = localStorage.getItem("email");
   const headers = { "Content-Type": "application/json", Authorization: `Bearer ${token}` };
@@ -81,7 +83,11 @@ export default function Admin() {
     fetch(`${BACKEND_URL}/api/admin/team`, { headers })
       .then((r) => r.json()).then(setTeam).catch(() => {});
 
-  useEffect(() => { loadProducts(); loadOrders(); }, []);
+  const loadSettings = () =>
+    fetch(`${BACKEND_URL}/api/settings`)
+      .then((r) => r.json()).then(setSettings).catch(() => {});
+
+  useEffect(() => { loadProducts(); loadOrders(); loadSettings(); }, []);
   useEffect(() => { if (page === "team") loadTeam(); }, [page]);
 
   const logout = () => {
@@ -201,10 +207,15 @@ export default function Admin() {
     setLoading(false);
   };
 
-  const saveSettings = (e) => {
+  const saveSettings = async (e) => {
     e.preventDefault();
-    localStorage.setItem("shop_settings", JSON.stringify(settings));
-    flash("Settings saved!");
+    setSettingsSaving(true);
+    const res = await fetch(`${BACKEND_URL}/api/settings`, {
+      method: "PUT", headers, body: JSON.stringify(settings),
+    });
+    if (res.ok) flash("Settings saved!");
+    else flash("Failed to save settings.", "error");
+    setSettingsSaving(false);
   };
 
   const nav = [
@@ -233,8 +244,16 @@ export default function Admin() {
 
   return (
     <div style={s.layout}>
+      {/* ── Mobile overlay ── */}
+      {isMobile && drawerOpen && (
+        <div style={s.overlay} onClick={() => setDrawerOpen(false)} />
+      )}
+
       {/* ── Sidebar ── */}
-      <aside style={s.sidebar}>
+      <aside style={{
+        ...s.sidebar,
+        ...(isMobile ? { transform: drawerOpen ? "translateX(0)" : "translateX(-100%)", transition: "transform 0.25s ease" } : {}),
+      }}>
         <div style={s.sidebarTop}>
           <div style={s.sidebarLogo}>🍰</div>
           <div style={s.sidebarTitle}>საკონდიტრო</div>
@@ -246,7 +265,7 @@ export default function Admin() {
             <button
               key={item.id}
               style={{ ...s.navBtn, ...(page === item.id ? s.navActive : {}) }}
-              onClick={() => setPage(item.id)}
+              onClick={() => { setPage(item.id); if (isMobile) setDrawerOpen(false); }}
             >
               <span style={s.navIcon}>{item.icon}</span>
               <span>{item.label}</span>
@@ -271,10 +290,14 @@ export default function Admin() {
       </aside>
 
       {/* ── Main ── */}
-      <main style={s.main}>
-        <header style={s.topbar}>
-          <div>
-            <h1 style={s.pageTitle}>{nav.find((i) => i.id === page)?.label}</h1>
+      <main style={{ ...s.main, ...(isMobile ? { marginLeft: 0 } : {}) }}>
+        <header style={{ ...s.topbar, ...(isMobile ? { padding: "1rem 1.2rem", flexWrap: "wrap", gap: "0.6rem" } : {}) }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "0.9rem" }}>
+            {isMobile && (
+              <button style={s.hamburgerBtn} onClick={() => setDrawerOpen(true)}>☰</button>
+            )}
+            <div>
+              <h1 style={s.pageTitle}>{nav.find((i) => i.id === page)?.label}</h1>
             <p style={s.pageDesc}>
               {page === "dashboard" && `${orders.length} total orders · ₾${totalRevenue.toFixed(0)} revenue`}
               {page === "products" && `${products.length} products · ${activeProducts} active`}
@@ -282,7 +305,8 @@ export default function Admin() {
               {page === "team" && `${team.length} delivery staff`}
               {page === "add" && "Fill in the details to add a new item"}
               {page === "settings" && "Manage your shop configuration"}
-            </p>
+              </p>
+            </div>
           </div>
           <div style={s.topbarRight}>
             {msg.text && (
@@ -296,7 +320,7 @@ export default function Admin() {
           </div>
         </header>
 
-        <div style={s.content}>
+        <div style={{ ...s.content, ...(isMobile ? { padding: "1.2rem" } : {}) }}>
 
           {/* ── Dashboard ── */}
           {page === "dashboard" && (
@@ -689,8 +713,8 @@ export default function Admin() {
                   <div style={s.settingsGrid}>
                     <div style={s.field}>
                       <label style={s.label}>Shop Name</label>
-                      <input style={s.input} placeholder="საკონდიტრო" value={settings.shopName || ""}
-                        onChange={e => setSettings({ ...settings, shopName: e.target.value })} />
+                      <input style={s.input} placeholder="საკონდიტრო" value={settings.shop_name || ""}
+                        onChange={e => setSettings({ ...settings, shop_name: e.target.value })} />
                     </div>
                     <div style={s.field}>
                       <label style={s.label}>Phone Number</label>
@@ -704,8 +728,8 @@ export default function Admin() {
                     </div>
                     <div style={s.field}>
                       <label style={s.label}>Pickup Note (shown to customers)</label>
-                      <input style={s.input} placeholder="e.g. Tamar's Kitchen, Vake district" value={settings.pickupNote || ""}
-                        onChange={e => setSettings({ ...settings, pickupNote: e.target.value })} />
+                      <input style={s.input} placeholder="e.g. Tamar's Kitchen, Vake district" value={settings.pickup_note || ""}
+                        onChange={e => setSettings({ ...settings, pickup_note: e.target.value })} />
                     </div>
                   </div>
                 </div>
@@ -717,15 +741,15 @@ export default function Admin() {
                     {[["Mon – Fri", "weekdays"], ["Saturday", "saturday"], ["Sunday", "sunday"]].map(([label, key]) => (
                       <div key={key} style={s.hoursRow}>
                         <span style={s.hoursDay}>{label}</span>
-                        <input style={{ ...s.input, width: "110px", marginBottom: 0 }} placeholder="9:00" value={settings[`${key}Open`] || ""}
-                          onChange={e => setSettings({ ...settings, [`${key}Open`]: e.target.value })} />
+                        <input style={{ ...s.input, width: "110px", marginBottom: 0 }} placeholder="9:00" value={settings[`${key}_open`] || ""}
+                          onChange={e => setSettings({ ...settings, [`${key}_open`]: e.target.value })} />
                         <span style={s.hoursDash}>—</span>
-                        <input style={{ ...s.input, width: "130px", marginBottom: 0 }} placeholder="20:00 / Closed" value={settings[`${key}Close`] || ""}
-                          onChange={e => setSettings({ ...settings, [`${key}Close`]: e.target.value })} />
+                        <input style={{ ...s.input, width: "130px", marginBottom: 0 }} placeholder="20:00 / Closed" value={settings[`${key}_close`] || ""}
+                          onChange={e => setSettings({ ...settings, [`${key}_close`]: e.target.value })} />
                       </div>
                     ))}
                   </div>
-                  <button style={{ ...s.addBtn, marginTop: "1.5rem" }} type="submit">Save Settings</button>
+                  <button style={{ ...s.addBtn, marginTop: "1.5rem" }} type="submit" disabled={settingsSaving}>{settingsSaving ? "Saving..." : "Save Settings"}</button>
                 </div>
               </form>
 
@@ -756,7 +780,10 @@ export default function Admin() {
 const s = {
   layout: { display: "flex", minHeight: "100vh", fontFamily: "'Inter', sans-serif", background: "#f7f3f7" },
 
-  sidebar: { width: "248px", background: "linear-gradient(180deg, #1a1020 0%, #2a1830 100%)", display: "flex", flexDirection: "column", position: "fixed", top: 0, left: 0, bottom: 0, zIndex: 40 },
+  overlay: { position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", zIndex: 44 },
+  hamburgerBtn: { background: "#f5eef2", border: "1px solid #e8dde5", color: "#1c0f18", width: "38px", height: "38px", borderRadius: "10px", cursor: "pointer", fontSize: "1.1rem", flexShrink: 0 },
+
+  sidebar: { width: "248px", background: "linear-gradient(180deg, #1a1020 0%, #2a1830 100%)", display: "flex", flexDirection: "column", position: "fixed", top: 0, left: 0, bottom: 0, zIndex: 45 },
   sidebarTop: { padding: "1.8rem 1.5rem 1.5rem", borderBottom: "1px solid rgba(255,255,255,0.07)", textAlign: "center" },
   sidebarLogo: { fontSize: "2rem", marginBottom: "0.3rem" },
   sidebarTitle: { color: "white", fontFamily: "'Playfair Display', serif", fontWeight: "700", fontSize: "1rem" },
@@ -863,7 +890,7 @@ const s = {
   emptyBtn: { background: "linear-gradient(135deg, #d4235e, #a01848)", color: "white", border: "none", padding: "0.7rem 1.5rem", borderRadius: "12px", cursor: "pointer", fontSize: "0.88rem", fontWeight: "600", marginTop: "1rem" },
   empty: { color: "#8b6070", textAlign: "center", padding: "2rem 1rem", fontSize: "0.88rem" },
 
-  addFormInner: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: "3rem" },
+  addFormInner: { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))", gap: "3rem" },
   addFormLeft: {},
   addFormRight: {},
   label: { display: "block", marginBottom: "0.4rem", color: "#6b4c58", fontSize: "0.8rem", fontWeight: "600" },
@@ -896,7 +923,7 @@ const s = {
   previewPrice: { color: "#d4235e", fontWeight: "800", fontSize: "1.2rem", fontFamily: "'Playfair Display', serif" },
   previewAddBtn: { background: "#d4235e", color: "white", border: "none", padding: "0.45rem 1rem", borderRadius: "50px", fontSize: "0.8rem", fontWeight: "600", opacity: 0.5, cursor: "default" },
 
-  teamFormRow: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: "2rem" },
+  teamFormRow: { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: "2rem" },
   teamForm: { display: "flex", flexDirection: "column" },
   teamHint: { background: "#fff8e1", border: "1px solid #ffe082", borderRadius: "14px", padding: "1.2rem", display: "flex", gap: "0.8rem", alignItems: "flex-start" },
   teamHintIcon: { fontSize: "1.4rem", flexShrink: 0 },
@@ -907,9 +934,9 @@ const s = {
   teamEmail: { fontWeight: "600", color: "#1c0f18", fontSize: "0.88rem" },
   teamDate: { color: "#8b6070", fontSize: "0.74rem", marginTop: "0.1rem" },
 
-  settingsGrid: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem 1.5rem", marginBottom: "0.5rem" },
+  settingsGrid: { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: "1rem 1.5rem", marginBottom: "0.5rem" },
   hoursGrid: { display: "flex", flexDirection: "column", gap: "0.8rem" },
-  hoursRow: { display: "flex", alignItems: "center", gap: "1rem" },
+  hoursRow: { display: "flex", alignItems: "center", gap: "1rem", flexWrap: "wrap" },
   hoursDay: { color: "#6b4c58", fontWeight: "500", fontSize: "0.85rem", width: "100px", flexShrink: 0 },
   hoursDash: { color: "#8b6070" },
   accountInfo: { display: "flex", flexDirection: "column", gap: "0.5rem", marginBottom: "1.2rem" },
