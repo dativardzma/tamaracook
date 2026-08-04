@@ -183,8 +183,22 @@ export default function Admin() {
       ? { label: "🏠 Ready for Pickup", next: "ready", color: "#d4235e" }
       : { label: "🚚 Picked Up", next: "out_for_delivery", color: "#7c3aed" };
     if (order.status === "out_for_delivery") return { label: "📦 Mark Delivered", next: "delivered", color: "#059669" };
-    if (order.status === "ready") return { label: "✓ Customer Collected", next: "delivered", color: "#059669" };
+    if (order.status === "ready") return { label: "✓ Customer Collected", next: "delivered", color: "#059669", requiresCode: true };
     return null;
+  };
+
+  const handleNextAction = (order) => {
+    const action = nextAction(order);
+    if (!action) return;
+    if (action.requiresCode) {
+      const entered = prompt(`Ask the customer for their order code, then type it here to confirm handoff:\n(Order #${order.id})`);
+      if (entered === null) return;
+      if (entered.trim().toUpperCase() !== (order.order_code || "").toUpperCase()) {
+        flash("Code doesn't match this order — please check with the customer.", "error");
+        return;
+      }
+    }
+    updateOrderStatus(order.id, action.next);
   };
 
   const deleteOrder = async (id) => {
@@ -192,6 +206,21 @@ export default function Admin() {
     await fetch(`${BACKEND_URL}/api/admin/orders/${id}`, { method: "DELETE", headers });
     flash("Order deleted.");
     loadOrders();
+  };
+
+  const exportOrdersCsv = () => {
+    const cols = ["id", "order_code", "created_at", "customer_name", "phone", "customer_email", "order_type", "address", "items", "total", "status"];
+    const escape = (v) => `"${String(v ?? "").replace(/"/g, '""')}"`;
+    const rows = [cols.join(",")].concat(
+      filteredOrders.map((o) => cols.map((c) => escape(o[c])).join(","))
+    );
+    const blob = new Blob([rows.join("\n")], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `sakonditro-orders-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
   };
 
   const addDelivery = async (e) => {
@@ -427,6 +456,9 @@ export default function Admin() {
                   value={orderSearch}
                   onChange={e => setOrderSearch(e.target.value)}
                 />
+                <button style={s.refreshBtn} onClick={exportOrdersCsv} disabled={filteredOrders.length === 0}>
+                  ⬇ Export CSV
+                </button>
               </div>
 
               <div style={s.card}>
@@ -464,7 +496,7 @@ export default function Admin() {
                             </div>
                             <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
                               {nextAction(o) && (
-                                <button style={{ ...s.actionBtn, background: nextAction(o).color }} onClick={() => updateOrderStatus(o.id, nextAction(o).next)}>
+                                <button style={{ ...s.actionBtn, background: nextAction(o).color }} onClick={() => handleNextAction(o)}>
                                   {nextAction(o).label}
                                 </button>
                               )}

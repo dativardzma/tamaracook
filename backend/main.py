@@ -2,6 +2,7 @@ import os
 import base64
 import random
 import string
+import logging
 import resend
 import httpx
 from datetime import datetime, timezone, timedelta
@@ -14,6 +15,9 @@ from typing import Optional
 from database import Base, engine, get_db
 from models import Product, Order, User, OtpCode, ShopSettings
 from auth import hash_password, verify_password, create_token, get_current_user, get_current_user_optional, require_admin, require_delivery
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger("sakonditro")
 
 Base.metadata.create_all(bind=engine)
 
@@ -75,6 +79,11 @@ app.add_middleware(
 class AdminSignup(BaseModel):
     email: str
     password: str
+
+class AdminSetupSignup(BaseModel):
+    email: str
+    password: str
+    setup_secret: str
 
 class UserRegister(BaseModel):
     email: str
@@ -176,6 +185,7 @@ def send_email_otp(to_email: str, code: str) -> bool:
         })
         return True
     except Exception:
+        logger.exception(f"Failed to send OTP email to {to_email}")
         return False
 
 
@@ -227,7 +237,7 @@ def send_order_email(to_email: str, customer_name: str, order_code: str, email_t
             "html": html,
         })
     except Exception:
-        pass
+        logger.exception(f"Failed to send order email ({email_type}) to {to_email} for order {order_code}")
 
 
 def send_push(token: str, title: str, body: str, data: dict = None):
@@ -241,7 +251,7 @@ def send_push(token: str, title: str, body: str, data: dict = None):
             timeout=10,
         )
     except Exception:
-        pass
+        logger.exception("Failed to send push notification")
 
 
 def notify_role_push(db: Session, role_column: str, title: str, body: str, data: dict = None):
@@ -314,7 +324,10 @@ def register(data: UserRegister, db: Session = Depends(get_db)):
     return user_response(user, create_token(user.id))
 
 @app.post("/api/auth/admin/signup")
-def admin_signup(data: AdminSignup, db: Session = Depends(get_db)):
+def admin_signup(data: AdminSetupSignup, db: Session = Depends(get_db)):
+    setup_secret = os.getenv("ADMIN_SETUP_SECRET")
+    if not setup_secret or data.setup_secret != setup_secret:
+        raise HTTPException(status_code=403, detail="Invalid setup secret")
     if db.query(User).filter(User.email == data.email).first():
         raise HTTPException(status_code=400, detail="Email already registered")
     user = User(email=data.email, password=hash_password(data.password), is_admin=True)
