@@ -68,3 +68,12 @@ class ShopSettings(Base):
     sunday_open = Column(String, nullable=True)
     sunday_close = Column(String, nullable=True)
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
+
+class AppLog(Base):
+    __tablename__ = "app_logs"
+    id = Column(Integer, primary_key=True, index=True)
+    level = Column(String, nullable=False)  # 'log', 'error', 'warn', 'info'
+    message = Column(Text, nullable=False)
+    timestamp = Column(DateTime(timezone=True), server_default=func.now())
+    source = Column(String, nullable=True)  # 'web', 'mobile'

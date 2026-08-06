@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useIsMobile } from "../hooks/useIsMobile";
+import ConsolePanel from "../components/ConsolePanel";
 
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "";
 
@@ -253,6 +254,7 @@ export default function Admin() {
     { id: "products",  icon: "🍰", label: "Products" },
     { id: "add",       icon: "➕", label: "Add Product" },
     { id: "team",      icon: "👥", label: "Delivery Team" },
+    { id: "console",   icon: "🖥️", label: "Console" },
     { id: "settings",  icon: "⚙️", label: "Settings" },
   ];
 
@@ -333,6 +335,7 @@ export default function Admin() {
               {page === "orders" && `${filteredOrders.length} of ${orders.length} orders shown`}
               {page === "team" && `${team.length} delivery staff`}
               {page === "add" && "Fill in the details to add a new item"}
+              {page === "console" && "Debug console - view and filter app logs"}
               {page === "settings" && "Manage your shop configuration"}
               </p>
             </div>
@@ -732,6 +735,13 @@ export default function Admin() {
                   </div>
                 )}
               </div>
+            </div>
+          )}
+
+          {/* ── Console ── */}
+          {page === "console" && (
+            <div style={s.card}>
+              <ConsolePanel />
             </div>
           )}
 

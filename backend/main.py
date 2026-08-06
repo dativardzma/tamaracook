@@ -13,7 +13,7 @@ from sqlalchemy import text
 from pydantic import BaseModel
 from typing import Optional
 from database import Base, engine, get_db
-from models import Product, Order, User, OtpCode, ShopSettings
+from models import Product, Order, User, OtpCode, ShopSettings, AppLog
 from auth import hash_password, verify_password, create_token, get_current_user, get_current_user_optional, require_admin, require_delivery
 
 logging.basicConfig(level=logging.INFO)
@@ -60,6 +60,15 @@ with engine.connect() as _conn:
             sunday_open VARCHAR,
             sunday_close VARCHAR,
             updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+        )
+    """))
+    _conn.execute(text("""
+        CREATE TABLE IF NOT EXISTS app_logs (
+            id SERIAL PRIMARY KEY,
+            level VARCHAR NOT NULL,
+            message TEXT NOT NULL,
+            timestamp TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+            source VARCHAR
         )
     """))
     _conn.commit()
@@ -560,3 +569,57 @@ def admin_delete_order(order_id: int, db: Session = Depends(get_db)):
 def admin_get_team(db: Session = Depends(get_db)):
     return [{"id": u.id, "email": u.email, "created_at": u.created_at}
             for u in db.query(User).filter(User.is_delivery == True).all()]
+
+
+# ── Logging ────────────────────────────────────────────────────────────────────
+
+class LogEntry(BaseModel):
+    level: str  # 'log', 'error', 'warn', 'info'
+    message: str
+    source: Optional[str] = None  # 'web', 'mobile'
+
+
+@app.post("/api/logs")
+def save_log(log: LogEntry, db: Session = Depends(get_db)):
+    """Save a log entry to the database"""
+    try:
+        db_log = AppLog(
+            level=log.level,
+            message=log.message,
+            source=log.source or "unknown"
+        )
+        db.add(db_log)
+        db.commit()
+        return {"status": "ok"}
+    except Exception as e:
+        logger.error(f"Failed to save log: {str(e)}")
+        return {"status": "error"}
+
+
+@app.get("/api/logs", dependencies=[Depends(require_admin)])
+def get_logs(level: Optional[str] = None, limit: int = 100, db: Session = Depends(get_db)):
+    """Fetch logs from the database (admin only)"""
+    query = db.query(AppLog).order_by(AppLog.timestamp.desc()).limit(limit)
+
+    if level and level != "all":
+        query = query.filter(AppLog.level == level)
+
+    logs = query.all()
+    return [
+        {
+            "id": log.id,
+            "level": log.level,
+            "message": log.message,
+            "timestamp": log.timestamp,
+            "source": log.source
+        }
+        for log in logs
+    ]
+
+
+@app.delete("/api/logs", dependencies=[Depends(require_admin)])
+def clear_logs(db: Session = Depends(get_db)):
+    """Clear all logs (admin only)"""
+    db.query(AppLog).delete()
+    db.commit()
+    return {"message": "Logs cleared"}
