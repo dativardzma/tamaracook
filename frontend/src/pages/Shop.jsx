@@ -11,7 +11,7 @@ const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "";
 
 // NOTE: EAS build artifact links expire after ~30 days. Update this after every new APK build
 // (get the fresh link with `eas build:list --limit 1 --platform android` in sakonditro_phoneapp).
-const ANDROID_APK_URL = "https://expo.dev/artifacts/eas/cK54BFlegBQWZG15sS6g8xO3t398-tcI8DgMHhm8XtM.apk";
+const ANDROID_APK_URL = "https://expo.dev/accounts/dativardzma/projects/sakonditro/builds/5cca5674-167f-4044-9962-86d63f54e905";
 
 
 export default function Shop() {
