@@ -9,7 +9,7 @@ export default function OrderForm({ cart, backendUrl, onClose, onSuccess }) {
     phone: localStorage.getItem("saved_phone") || "",
     email: localStorage.getItem("email") || "",
     address: "",
-    order_type: "delivery",
+    order_type: "pickup",
   });
   const [codeDigits, setCodeDigits] = useState(["", "", "", "", "", ""]);
   const [loading, setLoading] = useState(false);
@@ -65,7 +65,6 @@ export default function OrderForm({ cart, backendUrl, onClose, onSuccess }) {
     if (!form.customer_name.trim()) { setError("Please enter your name."); return; }
     if (!form.phone.trim()) { setError("Please enter your phone number."); return; }
     if (!form.email.trim() || !form.email.includes("@")) { setError("Please enter a valid email."); return; }
-    if (form.order_type === "delivery" && !form.address.trim()) { setError("Please enter your delivery address."); return; }
     sendOtp();
   };
 
@@ -166,28 +165,14 @@ export default function OrderForm({ cart, backendUrl, onClose, onSuccess }) {
               </div>
             </div>
 
-            <div style={{ ...s.toggleRow, background: c.toggleBg }}>
-              {[["delivery", "🚚 Delivery"], ["pickup", "🏠 Pickup"]].map(([v, l]) => (
-                <button key={v} type="button"
-                  style={{ ...s.toggleBtn, ...(form.order_type === v ? { background: c.bg, color: "#d4235e", fontWeight: "700", boxShadow: "0 2px 10px rgba(0,0,0,0.1)" } : { color: c.muted }) }}
-                  onClick={() => setForm({ ...form, order_type: v, address: v === "pickup" ? "" : form.address })}>
-                  {l}
-                </button>
-              ))}
-            </div>
-
-            {form.order_type === "delivery" && (
-              <div style={s.deliveryNote}>🕐 Estimated delivery: <strong>45–75 minutes</strong></div>
-            )}
-            {form.order_type === "pickup" && (
-              <div style={s.pickupNote}>
-                <span style={s.pickupIcon}>📍</span>
-                <div>
-                  <strong style={{ display: "block", color: "#5d4037", fontSize: "0.85rem", marginBottom: "0.2rem" }}>Pick up at our kitchen</strong>
-                  <p style={{ color: "#8d6e63", fontSize: "0.78rem", lineHeight: 1.5 }}>We'll confirm exact location by phone.</p>
-                </div>
+            {/* Order type — pickup only for now (delivery coming later) */}
+            <div style={s.pickupNote}>
+              <span style={s.pickupIcon}>📍</span>
+              <div>
+                <strong style={{ display: "block", color: "#5d4037", fontSize: "0.85rem", marginBottom: "0.2rem" }}>Pick up at our kitchen</strong>
+                <p style={{ color: "#8d6e63", fontSize: "0.78rem", lineHeight: 1.5 }}>We'll confirm exact location by phone. Delivery isn't available yet.</p>
               </div>
-            )}
+            </div>
 
             <form onSubmit={goToStep2}>
               <div style={s.formGrid}>
@@ -208,14 +193,6 @@ export default function OrderForm({ cart, backendUrl, onClose, onSuccess }) {
               <input style={{ ...s.input, background: c.inputBg, border: `1.5px solid ${c.inputBorder}`, color: c.text }}
                 type="email" placeholder="your@email.com" value={form.email}
                 onChange={(e) => setForm({ ...form, email: e.target.value })} required />
-              {form.order_type === "delivery" && (
-                <>
-                  <label style={{ ...s.label, color: c.muted }}>Delivery Address *</label>
-                  <input style={{ ...s.input, background: c.inputBg, border: `1.5px solid ${c.inputBorder}`, color: c.text }}
-                    placeholder="Street, building, district…" value={form.address}
-                    onChange={(e) => setForm({ ...form, address: e.target.value })} required />
-                </>
-              )}
               {error && <div style={s.errorBox}>⚠️ {error}</div>}
               <button style={s.submitBtn} type="submit" disabled={loading}>
                 {loading
@@ -286,7 +263,7 @@ export default function OrderForm({ cart, backendUrl, onClose, onSuccess }) {
             <div style={{ background: isDark ? "rgba(212,35,94,0.08)" : "#fdf0f5", border: `1px solid ${isDark ? "rgba(212,35,94,0.2)" : "#f5dde8"}`, borderRadius: "14px", padding: "1rem 1.2rem", marginBottom: "1.2rem", display: "flex", gap: "0.8rem", alignItems: "flex-start" }}>
               <span style={{ fontSize: "1.2rem", flexShrink: 0 }}>📞</span>
               <p style={{ color: c.text, fontSize: "0.85rem", lineHeight: 1.6, margin: 0 }}>
-                We'll call <strong>{form.phone}</strong> within a few minutes to confirm your order, then {form.order_type === "delivery" ? "deliver it to your address" : "have it ready for pickup"}. Payment is collected {form.order_type === "delivery" ? "on delivery" : "at pickup"} — cash or card.
+                We'll call <strong>{form.phone}</strong> within a few minutes to confirm your order, then have it ready for pickup. Payment is collected at pickup — cash or card.
               </p>
             </div>
 
@@ -356,11 +333,8 @@ const s = {
   summaryPrice: { color: "#d4235e", fontSize: "0.82rem", fontWeight: "600" },
   summaryTotal: { display: "flex", justifyContent: "space-between", alignItems: "center", borderTop: "1px solid rgba(212,35,94,0.1)", paddingTop: "0.7rem" },
   summaryTotalAmount: { fontFamily: "'Playfair Display', serif", fontWeight: "700", fontSize: "1.3rem" },
-  toggleRow: { display: "flex", borderRadius: "14px", padding: "3px", marginBottom: "1rem", gap: "3px" },
-  toggleBtn: { flex: 1, padding: "0.65rem", border: "none", background: "transparent", cursor: "pointer", borderRadius: "11px", fontWeight: "500", fontSize: "0.88rem", transition: "all 0.15s" },
   pickupNote: { display: "flex", gap: "0.8rem", background: "#fff8e1", border: "1px solid #ffe082", borderRadius: "12px", padding: "0.85rem 1rem", marginBottom: "1rem" },
   pickupIcon: { fontSize: "1.1rem", flexShrink: 0 },
-  deliveryNote: { background: "#e8f5e9", color: "#2e7d32", fontSize: "0.8rem", fontWeight: "500", padding: "0.55rem 1rem", borderRadius: "10px", marginBottom: "1rem", textAlign: "center" },
   formGrid: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.8rem" },
   label: { display: "block", marginBottom: "0.38rem", fontSize: "0.78rem", fontWeight: "600" },
   input: { width: "100%", padding: "0.82rem 1rem", borderRadius: "12px", marginBottom: "1rem", fontSize: "0.9rem", boxSizing: "border-box", outline: "none", transition: "border-color 0.15s, box-shadow 0.15s" },

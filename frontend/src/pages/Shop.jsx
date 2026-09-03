@@ -138,9 +138,6 @@ export default function Shop() {
             {isAdmin && (
               <button style={s.staffBtn} onClick={() => navigate("/admin")}>⚙️ Admin</button>
             )}
-            {isDelivery && !isAdmin && (
-              <button style={s.staffBtn} onClick={() => navigate("/delivery")}>🚚 Deliveries</button>
-            )}
             {userEmail ? (
               <button style={s.userPill} onClick={() => setProfileOpen(true)}>
                 <span style={s.userDot} />
@@ -177,7 +174,7 @@ export default function Shop() {
 
           <p style={{ color: "rgba(255,255,255,0.5)", fontSize: "1.05rem", lineHeight: 1.9, marginBottom: "2.8rem", animation: "fadeInUp 0.55s ease 0.2s both" }}>
             Homemade cakes, pastries & chocolates baked fresh every morning in Tbilisi<br />
-            <span style={{ color: "rgba(255,255,255,0.28)", fontSize: "0.92rem" }}>Delivery across the city · Order online, we bring it to your door</span>
+            <span style={{ color: "rgba(255,255,255,0.28)", fontSize: "0.92rem" }}>Order online, pick up fresh from our kitchen</span>
           </p>
 
           <div style={{ display: "flex", gap: "1rem", justifyContent: "center", flexWrap: "wrap", marginBottom: "3.5rem", animation: "fadeInUp 0.55s ease 0.3s both" }}>
@@ -195,7 +192,7 @@ export default function Shop() {
           </div>
 
           <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "1.5rem", flexWrap: "wrap", animation: "fadeInUp 0.55s ease 0.4s both" }}>
-            {["🌅 Baked Every Morning", "🚚 Tbilisi Delivery", "💝 100% Homemade", "🎂 Custom Orders"].map((tag) => (
+            {["🌅 Baked Every Morning", "🏠 Easy Pickup", "💝 100% Homemade", "🎂 Custom Orders"].map((tag) => (
               <span key={tag} style={{ color: "rgba(255,255,255,0.45)", fontSize: "0.78rem", letterSpacing: "0.04em" }}>{tag}</span>
             ))}
           </div>
@@ -206,8 +203,8 @@ export default function Shop() {
       <section style={{ background: "var(--feature-bg)", borderTop: "1px solid var(--border)", borderBottom: "1px solid var(--border)" }}>
         <div style={{ maxWidth: "1280px", margin: "0 auto", display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))" }}>
           {[
-            { icon: "🌅", title: "Fresh Every Morning", desc: "Baked daily, never frozen. Order by 3PM for same-day delivery.", color: "#ff9800" },
-            { icon: "🚚", title: "Tbilisi Delivery", desc: "We deliver to Vake, Saburtalo, Vera, Mtatsminda & more.", color: "#d4235e" },
+            { icon: "🌅", title: "Fresh Every Morning", desc: "Baked daily, never frozen. Order by 3PM for same-day pickup.", color: "#ff9800" },
+            { icon: "🏠", title: "Easy Pickup", desc: "Order ahead and collect it fresh from our kitchen in Tbilisi.", color: "#d4235e" },
             { icon: "💝", title: "100% Homemade", desc: "Real Georgian recipes, local ingredients — no shortcuts.", color: "#e91e63" },
             { icon: "📱", title: "WhatsApp Orders", desc: "Custom cakes & bulk orders — just message us directly.", color: "#9c27b0" },
           ].map((f, i) => <FeatureCard key={f.title} f={f} hasBorder={i < 3} />)}
@@ -226,7 +223,7 @@ export default function Shop() {
               { step: "1", icon: "🛒", title: "Browse & Add", desc: "Pick your favourites from our menu — cakes, pastries, chocolates and more." },
               { step: "2", icon: "📱", title: "Verify & Pay", desc: "Confirm your email, then complete checkout. We keep it safe and simple." },
               { step: "3", icon: "🍰", title: "We Bake for You", desc: "Your order heads straight to our kitchen — freshly prepared just for you." },
-              { step: "4", icon: "🚚", title: "Door Delivery", desc: "We deliver hot and fresh across Tbilisi, usually within 45–75 minutes." },
+              { step: "4", icon: "🏠", title: "Ready for Pickup", desc: "We'll text or call you the moment it's fresh and ready to collect." },
             ].map((s2, i) => (
               <div key={s2.step} style={{ textAlign: "center", padding: "0 1.5rem", position: "relative" }}>
                 {i < 3 && <div style={{ position: "absolute", top: "28px", right: "-1px", width: "50%", height: "2px", background: "linear-gradient(to right, var(--accent), transparent)", zIndex: 0, display: "none" }} />}
@@ -428,7 +425,7 @@ export default function Shop() {
             </p>
             <div style={{ marginTop: "0.8rem", background: "rgba(212,35,94,0.1)", border: "1px solid rgba(212,35,94,0.2)", borderRadius: "8px", padding: "0.5rem 0.75rem" }}>
               <p style={{ color: "#f4a3b8", fontSize: "0.7rem", fontWeight: "600" }}>🕐 Order before 3PM</p>
-              <p style={{ color: "rgba(255,255,255,0.3)", fontSize: "0.66rem" }}>for same-day delivery</p>
+              <p style={{ color: "rgba(255,255,255,0.3)", fontSize: "0.66rem" }}>for same-day pickup</p>
             </div>
           </div>
           <div>
@@ -439,13 +436,9 @@ export default function Shop() {
             <p style={s.footerLine}>📍 Tbilisi, Georgia</p>
           </div>
           <div>
-            <p style={s.footerHeading}>Delivery Areas</p>
-            {["Vake", "Saburtalo", "Vera", "Mtatsminda", "Nadzaladevi", "Isani", "Ortachala"].map((area) => (
-              <p key={area} style={{ ...s.footerLine, display: "flex", alignItems: "center", gap: "0.4rem" }}>
-                <span style={{ color: "#d4235e", fontSize: "0.6rem" }}>●</span> {area}
-              </p>
-            ))}
-            <p style={{ color: "rgba(255,255,255,0.2)", fontSize: "0.7rem", marginTop: "0.5rem" }}>Other areas — call us</p>
+            <p style={s.footerHeading}>Pickup</p>
+            <p style={s.footerLine}>{settings.pickup_note || "We'll confirm the exact pickup location by phone after you order."}</p>
+            <p style={{ ...s.footerLine, marginTop: "0.6rem" }}>📍 {settings.address || "Tbilisi, Georgia"}</p>
           </div>
         </div>
         <div style={{ maxWidth: "1280px", margin: "0 auto", padding: "1.6rem 0", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "0.5rem" }}>
@@ -535,7 +528,7 @@ export default function Shop() {
             <div style={os.tips}>
               {[
                 ["📞", "We'll call to confirm within minutes"],
-                ["🚚", "Estimated delivery: 45–75 minutes"],
+                ["🏠", "We'll text/call you when it's ready for pickup"],
                 ["🍰", "Your treats are being freshly prepared"],
               ].map(([icon, text]) => (
                 <div key={text} style={{ display: "flex", alignItems: "center", gap: "0.65rem" }}>

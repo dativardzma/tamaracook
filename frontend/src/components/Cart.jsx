@@ -8,9 +8,6 @@ export default function Cart({ cart, setCart, onClose, onOrder }) {
   const total = cart.reduce((s, i) => s + Number(i.price) * i.qty, 0);
   const savings = cart.reduce((s, i) => i.sale_price ? s + (Number(i.price) - Number(i.sale_price)) * i.qty : s, 0);
   const totalItems = cart.reduce((a, i) => a + i.qty, 0);
-  const FREE_THRESHOLD = 30;
-  const pct = Math.min(100, (total / FREE_THRESHOLD) * 100);
-  const remaining = Math.max(0, FREE_THRESHOLD - total);
 
   const updateQty = (id, delta) =>
     setCart((prev) => prev.map((i) => i.id === id ? { ...i, qty: i.qty + delta } : i).filter((i) => i.qty > 0));
@@ -102,19 +99,6 @@ export default function Cart({ cart, setCart, onClose, onOrder }) {
 
               {/* ── Footer ── */}
               <div style={{ padding: "1.1rem 1.8rem 1.7rem", borderTop: `1px solid ${c.border}`, background: isDark ? "rgba(255,255,255,0.02)" : "#fdf8fb" }}>
-
-                {/* Free delivery bar */}
-                <div style={{ marginBottom: "0.9rem" }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "0.4rem" }}>
-                    <span style={{ fontSize: "0.72rem", color: remaining === 0 ? "#22c55e" : c.muted, fontWeight: "600" }}>
-                      {remaining === 0 ? "🎉 Free delivery unlocked!" : `🚚 ₾${remaining.toFixed(2)} more for free delivery`}
-                    </span>
-                    <span style={{ fontSize: "0.68rem", color: c.muted }}>{Math.round(pct)}%</span>
-                  </div>
-                  <div style={{ height: "6px", background: isDark ? "rgba(255,255,255,0.07)" : "#f0e6ec", borderRadius: "3px", overflow: "hidden" }}>
-                    <div style={{ height: "100%", width: `${pct}%`, background: remaining === 0 ? "linear-gradient(90deg, #22c55e, #16a34a)" : "linear-gradient(90deg, #d4235e, #a01848)", borderRadius: "3px", transition: "width 0.4s ease" }} />
-                  </div>
-                </div>
 
                 {/* Savings badge */}
                 {savings > 0 && (

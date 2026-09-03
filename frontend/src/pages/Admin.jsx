@@ -248,12 +248,13 @@ export default function Admin() {
     setSettingsSaving(false);
   };
 
+  // "team" (delivery staff) tab is hidden until delivery launches — it still
+  // works below, just not linked from the sidebar. Add it back here when ready.
   const nav = [
     { id: "dashboard", icon: "📊", label: "Dashboard" },
     { id: "orders",    icon: "📋", label: "Orders" },
     { id: "products",  icon: "🍰", label: "Products" },
     { id: "add",       icon: "➕", label: "Add Product" },
-    { id: "team",      icon: "👥", label: "Delivery Team" },
     { id: "console",   icon: "🖥️", label: "Console" },
     { id: "settings",  icon: "⚙️", label: "Settings" },
   ];

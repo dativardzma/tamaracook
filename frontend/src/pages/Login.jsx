@@ -24,8 +24,8 @@ export default function Login() {
       localStorage.setItem("email", data.email);
       localStorage.setItem("is_admin", data.is_admin ? "true" : "false");
       localStorage.setItem("is_delivery", data.is_delivery ? "true" : "false");
+      // Note: there's no delivery panel yet — delivery accounts land on the shop like anyone else.
       if (data.is_admin) navigate("/admin");
-      else if (data.is_delivery) navigate("/delivery");
       else navigate("/");
     } catch { setError("Could not connect to server."); }
     setLoading(false);
