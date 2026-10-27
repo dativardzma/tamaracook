@@ -77,3 +77,12 @@ class AppLog(Base):
     message = Column(Text, nullable=False)
     timestamp = Column(DateTime(timezone=True), server_default=func.now())
     source = Column(String, nullable=True)  # 'web', 'mobile'
+
+
+class LockerSurveyResponse(Base):
+    __tablename__ = "locker_survey_responses"
+    id = Column(Integer, primary_key=True, index=True)
+    first_name = Column(String(80), nullable=False)
+    last_name = Column(String(80), nullable=False)
+    answers_json = Column(Text, nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), index=True)

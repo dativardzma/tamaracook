@@ -121,7 +121,7 @@ export default function Shop() {
           </button>
 
           <nav style={s.headerNav}>
-            {[["About", () => scrollTo("about-section")], ["Contact", () => scrollTo("contact-section")]].map(([label, fn]) => (
+            {[["About", () => scrollTo("about-section")], ["Contact", () => scrollTo("contact-section")], ["სასკოლო კითხვარი", () => navigate("/locker-survey")]].map(([label, fn]) => (
               <button key={label} style={s.navLink} onClick={fn}
                 onMouseEnter={e => e.currentTarget.style.color = "white"}
                 onMouseLeave={e => e.currentTarget.style.color = "rgba(255,255,255,0.55)"}

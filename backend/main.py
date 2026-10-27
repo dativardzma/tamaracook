@@ -10,10 +10,18 @@ from fastapi import FastAPI, Depends, HTTPException, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from sqlalchemy import text
-from pydantic import BaseModel
-from typing import Optional
+from pydantic import BaseModel, Field, field_validator
+from typing import Literal, Optional
 from database import Base, engine, get_db
-from models import Product, Order, User, OtpCode, ShopSettings, AppLog
+from models import (
+    AppLog,
+    LockerSurveyResponse,
+    Order,
+    OtpCode,
+    Product,
+    ShopSettings,
+    User,
+)
 from auth import hash_password, verify_password, create_token, get_current_user, get_current_user_optional, require_admin, require_delivery
 
 logging.basicConfig(level=logging.INFO)
@@ -153,6 +161,43 @@ class ShopSettingsUpdate(BaseModel):
     saturday_close: Optional[str] = None
     sunday_open: Optional[str] = None
     sunday_close: Optional[str] = None
+
+
+class LockerSurveyAnswers(BaseModel):
+    q1: str = Field(min_length=1, max_length=2000)
+    q2: Literal["დიახ", "არა"]
+    q3: int = Field(ge=1, le=5)
+    q4: list[
+        Literal["წიგნები", "სპორტული ნივთები", "ტანსაცმელი", "სასკოლო ნივთები", "სხვა"]
+    ] = Field(min_length=1)
+    q5: Literal["ლითონის", "ხის", "პლასტმასის", "მნიშვნელობა არ აქვს"]
+    q6: Literal["სკოლაში", "სპორტულ დარბაზში", "სახლში", "სხვა"]
+    q7: Literal["სამნიშნა მბრუნავი კოდი", "ოთხნიშნა მბრუნავი კოდი", "ღილაკებიანი მექანიკური საკეტი"]
+    q8: Literal["თვეში ერთხელ", "რამდენიმე თვეში ერთხელ", "მხოლოდ საჭიროებისას", "არასდროს"]
+    q9: Literal["მარტივად", "საშუალოდ", "რთულად"]
+    q10: Literal["დიახ", "არა", "არ ვიცი"]
+
+    @field_validator("q1")
+    @classmethod
+    def trim_open_answer(cls, value: str) -> str:
+        cleaned = value.strip()
+        if not cleaned:
+            raise ValueError("პირველ კითხვაზე პასუხი სავალდებულოა")
+        return cleaned
+
+
+class LockerSurveySubmission(BaseModel):
+    first_name: str = Field(min_length=1, max_length=80)
+    last_name: str = Field(min_length=1, max_length=80)
+    answers: LockerSurveyAnswers
+
+    @field_validator("first_name", "last_name")
+    @classmethod
+    def trim_name(cls, value: str) -> str:
+        cleaned = value.strip()
+        if not cleaned:
+            raise ValueError("სახელი და გვარი სავალდებულოა")
+        return cleaned
 
 
 # ── Helpers ────────────────────────────────────────────────────────────────────
@@ -403,6 +448,21 @@ def my_orders(db: Session = Depends(get_db), current_user=Depends(get_current_us
 @app.get("/api/health")
 def health():
     return {"status": "ok"}
+
+@app.post("/api/locker-survey-responses", status_code=201)
+def create_locker_survey_response(
+    payload: LockerSurveySubmission,
+    db: Session = Depends(get_db),
+):
+    response = LockerSurveyResponse(
+        first_name=payload.first_name,
+        last_name=payload.last_name,
+        answers_json=payload.answers.model_dump_json(),
+    )
+    db.add(response)
+    db.commit()
+    db.refresh(response)
+    return {"id": response.id, "message": "პასუხი წარმატებით შეინახა"}
 
 @app.get("/api/settings")
 def get_settings(db: Session = Depends(get_db)):
