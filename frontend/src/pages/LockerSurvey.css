@@ -14,16 +14,6 @@
   margin: 0 auto;
 }
 
-.locker-survey-back {
-  margin: 0 0 18px;
-  padding: 7px 0;
-  border: 0;
-  background: none;
-  color: var(--accent);
-  font: inherit;
-  cursor: pointer;
-}
-
 .locker-survey-header {
   padding: 24px;
   border: 1px solid rgba(212, 35, 94, 0.22);
@@ -72,15 +62,15 @@
   background: var(--bg-card);
 }
 
-.locker-survey-question legend {
+.locker-survey-question-title {
   display: flex;
   align-items: flex-start;
   gap: 10px;
-  width: 100%;
-  padding: 0;
+  margin: 0 0 14px;
   font-size: 14px;
   font-weight: 700;
   line-height: 1.6;
+  overflow-wrap: anywhere;
 }
 
 .locker-survey-number {

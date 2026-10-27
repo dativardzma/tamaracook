@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
 import "./LockerSurvey.css";
 
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "";
@@ -71,11 +70,11 @@ const questions = [
 
 function SurveyQuestion({ question, value, onChange }) {
   return (
-    <fieldset className="locker-survey-question">
-      <legend>
+    <section className="locker-survey-question">
+      <h2 className="locker-survey-question-title">
         <span className="locker-survey-number">{String(Number(question.id.slice(1))).padStart(2, "0")}</span>
         {question.title}
-      </legend>
+      </h2>
 
       {question.type === "text" && (
         <textarea
@@ -111,7 +110,11 @@ function SurveyQuestion({ question, value, onChange }) {
       )}
 
       {(question.type === "radio" || question.type === "checkbox") && (
-        <div className="locker-survey-options">
+        <div
+          className="locker-survey-options"
+          role={question.type === "radio" ? "radiogroup" : "group"}
+          aria-label={question.title}
+        >
           {question.options.map((option) => {
             const checked = question.type === "checkbox"
               ? (value || []).includes(option)
@@ -143,12 +146,11 @@ function SurveyQuestion({ question, value, onChange }) {
           })}
         </div>
       )}
-    </fieldset>
+    </section>
   );
 }
 
 export default function LockerSurvey() {
-  const navigate = useNavigate();
   const [answers, setAnswers] = useState({});
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
@@ -195,10 +197,6 @@ export default function LockerSurvey() {
   return (
     <main className="locker-survey-page">
       <div className="locker-survey-wrap">
-        <button type="button" className="locker-survey-back" onClick={() => navigate("/")}>
-          ← მთავარ გვერდზე დაბრუნება
-        </button>
-
         <header className="locker-survey-header">
           <div className="locker-survey-eyebrow">სასკოლო გამოკითხვა · 10 კითხვა</div>
           <h1>კოდიანი საკეტები</h1>
@@ -241,7 +239,7 @@ export default function LockerSurvey() {
                     required
                     value={firstName}
                     onChange={(event) => setFirstName(event.target.value)}
-                    placeholder="მაგალითად, ნინო"
+                    placeholder="მაგალითად, დავით"
                   />
                 </label>
                 <label>
@@ -254,7 +252,7 @@ export default function LockerSurvey() {
                     required
                     value={lastName}
                     onChange={(event) => setLastName(event.target.value)}
-                    placeholder="მაგალითად, გელაშვილი"
+                    placeholder="მაგალითად, სვანიძე"
                   />
                 </label>
               </div>
