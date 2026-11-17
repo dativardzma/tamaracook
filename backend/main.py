@@ -21,6 +21,7 @@ from models import (
     Product,
     ShopSettings,
     User,
+    WorkoutLog,
 )
 from auth import hash_password, verify_password, create_token, get_current_user, get_current_user_optional, require_admin, require_delivery
 
@@ -683,3 +684,33 @@ def clear_logs(db: Session = Depends(get_db)):
     db.query(AppLog).delete()
     db.commit()
     return {"message": "Logs cleared"}
+
+
+# ── Workout log (private to each logged-in user) ───────────────────────────────
+
+class WorkoutLogCreate(BaseModel):
+    day: str = Field(min_length=1, max_length=8)
+    exercise: str = Field(min_length=1, max_length=120)
+    result: str = Field(min_length=1, max_length=120)
+
+@app.get("/api/workout-logs")
+def list_workout_logs(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    rows = (
+        db.query(WorkoutLog)
+        .filter(WorkoutLog.user_id == current_user.id)
+        .order_by(WorkoutLog.created_at.desc())
+        .limit(500)
+        .all()
+    )
+    return [
+        {"id": r.id, "day": r.day, "exercise": r.exercise, "result": r.result, "created_at": r.created_at}
+        for r in rows
+    ]
+
+@app.post("/api/workout-logs", status_code=201)
+def create_workout_log(data: WorkoutLogCreate, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    row = WorkoutLog(user_id=current_user.id, day=data.day.strip(), exercise=data.exercise.strip(), result=data.result.strip())
+    db.add(row)
+    db.commit()
+    db.refresh(row)
+    return {"id": row.id, "day": row.day, "exercise": row.exercise, "result": row.result, "created_at": row.created_at}
