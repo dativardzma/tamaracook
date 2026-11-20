@@ -102,7 +102,7 @@ function SurveyQuestion({ question, value, onChange }) {
         </div>
       )}
 
-      {question.type === "rating" && (
+      {question.type === "ratingv2" && (
         <div className="locker-survey-rating" role="radiogroup" aria-label="შეფასება 1-დან 5-მდე">
           {[1, 2, 3, 4, 5].map((rating) => (
             <label key={rating} className={value === rating ? "selected" : ""}>
