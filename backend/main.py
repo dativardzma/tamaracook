@@ -165,7 +165,7 @@ class ShopSettingsUpdate(BaseModel):
 
 
 class LockerSurveyAnswers(BaseModel):
-    q1: str = Field(min_length=1, max_length=2000)
+    q1: Literal["ყოველთვის", "ხანდახან", "იშვიათად", "არასდროს"]
     q2: Literal["დიახ", "არა"]
     q3: int = Field(ge=1, le=5)
     q4: list[
