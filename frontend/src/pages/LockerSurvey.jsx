@@ -6,7 +6,7 @@ const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "";
 const questions = [
   {
     id: "q1",
-    title: "რა არის შენთვის ყველაზე მნიშვნელოვანი თვისება კოდიანი საკეტის მქონე კარადისთვის?",
+    title: "რამდენად ხშირად გეკარგება ნივთები კარადიდან",
     type: "text",
   },
   {
@@ -28,18 +28,11 @@ const questions = [
   },
   {
     id: "q5",
-    title: "რომელი მასალის კარადას მიანიჭებდი უპირატესობას?",
-    type: "radio",
-    options: ["ლითონის", "ხის", "პლასტმასის", "მნიშვნელობა არ აქვს"],
+    title: "რამდენად დაცულად იგრძნობ თავს თუ კარადაზე გექნება კოდიანი საკეტი დამონტაჟებული?",
+    type: "ratingv2",
   },
   {
     id: "q6",
-    title: "სად გამოიყენებდი ასეთ კარადას ყველაზე ხშირად?",
-    type: "radio",
-    options: ["სკოლაში", "სპორტულ დარბაზში", "სახლში", "სხვა"],
-  },
-  {
-    id: "q7",
     title: "რომელი ტიპის მექანიკურ კოდიან საკეტს აირჩევდი?",
     type: "radio",
     options: [
@@ -49,19 +42,19 @@ const questions = [
     ],
   },
   {
-    id: "q8",
+    id: "q7",
     title: "რამდენად ხშირად შეცვლიდი კოდს?",
     type: "radio",
     options: ["თვეში ერთხელ", "რამდენიმე თვეში ერთხელ", "მხოლოდ საჭიროებისას", "არასდროს"],
   },
   {
-    id: "q9",
+    id: "q8",
     title: "რამდენად მარტივი უნდა იყოს კოდის შეცვლა?",
     type: "radio",
     options: ["მარტივად", "საშუალოდ", "რთულად"],
   },
   {
-    id: "q10",
+    id: "q9",
     title: "ურჩევდი თუ არა კოდიან კარადას შენს თანაკლასელს?",
     type: "radio",
     options: ["დიახ", "არა", "არ ვიცი"],
@@ -105,6 +98,28 @@ function SurveyQuestion({ question, value, onChange }) {
           <div className="locker-survey-rating-labels">
             <span>უმნიშვნელოა</span>
             <span>ძალიან მნიშვნელოვანია</span>
+          </div>
+        </div>
+      )}
+
+      {question.type === "rating" && (
+        <div className="locker-survey-rating" role="radiogroup" aria-label="შეფასება 1-დან 5-მდე">
+          {[1, 2, 3, 4, 5].map((rating) => (
+            <label key={rating} className={value === rating ? "selected" : ""}>
+              <input
+                type="radio"
+                name={question.id}
+                value={rating}
+                checked={value === rating}
+                onChange={() => onChange(rating)}
+                required={rating === 1}
+              />
+              <span>{rating}</span>
+            </label>
+          ))}
+          <div className="locker-survey-rating-labels">
+            <span>არ ვგძნობ დაცულად თავს</span>
+            <span>დაცულად ვგრძობ თავს</span>
           </div>
         </div>
       )}

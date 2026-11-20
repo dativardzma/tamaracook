@@ -120,15 +120,6 @@ export default function Shop() {
             </div>
           </button>
 
-          <nav style={s.headerNav}>
-            {[["About", () => scrollTo("about-section")], ["Contact", () => scrollTo("contact-section")], ["სასკოლო კითხვარი", () => navigate("/locker-survey")]].map(([label, fn]) => (
-              <button key={label} style={s.navLink} onClick={fn}
-                onMouseEnter={e => e.currentTarget.style.color = "white"}
-                onMouseLeave={e => e.currentTarget.style.color = "rgba(255,255,255,0.55)"}
-              >{label}</button>
-            ))}
-          </nav>
-
           <div style={s.headerActions}>
             {/* Theme toggle */}
             <button style={s.themeBtn} onClick={toggle} title="Toggle dark mode">
