@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { useTheme } from "../context/ThemeContext";
 
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "";
 
@@ -35,6 +36,30 @@ const days = [
 
 const SETS = 3;
 
+// Page-only palette: overrides the bakery's pink theme on this page
+const palette = {
+  light: {
+    "--bg": "#f4f5f7", "--bg-card": "#ffffff", "--bg-muted": "#e9ecef", "--bg-input": "#ffffff",
+    "--text": "#111827", "--text-muted": "#6b7280", "--text-faint": "#9ca3af",
+    "--border": "#e5e7eb", "--border-input": "#d1d5db", "--input-text": "#111827",
+    "--accent": "#059669", "--accent-light": "#ecfdf5", "--on-accent": "#ffffff", "--shadow-lg": "rgba(0,0,0,0.18)",
+  },
+  dark: {
+    "--bg": "#0b0f14", "--bg-card": "#141a21", "--bg-muted": "#1f2731", "--bg-input": "#1a2129",
+    "--text": "#e5e7eb", "--text-muted": "#8b96a5", "--text-faint": "#5b6573",
+    "--border": "#232c37", "--border-input": "#2e3946", "--input-text": "#e5e7eb",
+    "--accent": "#34d399", "--accent-light": "#0f2a22", "--on-accent": "#06281d", "--shadow-lg": "rgba(0,0,0,0.5)",
+  },
+};
+
+// start of the Monday-based week containing d (ms)
+const weekStart = (d) => {
+  const x = new Date(d);
+  x.setHours(0, 0, 0, 0);
+  x.setDate(x.getDate() - ((x.getDay() + 6) % 7));
+  return x.getTime();
+};
+
 const rules = [
   ["Hardest Move First", "Pull-ups and Wall Handstands go first, while grip and shoulders are fresh."],
   ["Form Over Ego", "Chest to the floor on every push-up, tight core. Pull-ups from a dead hang, chin clearly over the bar. Never push through sharp wrist, elbow or shoulder pain."],
@@ -64,7 +89,34 @@ export default function Training() {
   const [rest, setRest] = useState(null); // { until, label }
   const [now, setNow] = useState(Date.now());
   const [msg, setMsg] = useState("");
+  const { isDark, toggle } = useTheme();
   const [token, setToken] = useState(() => localStorage.getItem("token"));
+  const [logs, setLogs] = useState([]);
+
+  const loadLogs = useCallback(() => {
+    if (!token) { setLogs([]); return; }
+    fetch(`${BACKEND_URL}/api/workout-logs`, { headers: { Authorization: `Bearer ${token}` } })
+      .then((r) => (r.ok ? r.json() : []))
+      .then((d) => setLogs(Array.isArray(d) ? d : []))
+      .catch(() => {});
+  }, [token]);
+  useEffect(loadLogs, [loadLogs]);
+
+  // group saved logs into sessions: same day key + same calendar date
+  const sessions = useMemo(() => {
+    const map = new Map();
+    for (const l of logs) {
+      const date = new Date(l.created_at);
+      const k = `${date.toDateString()}|${l.day}`;
+      if (!map.has(k)) map.set(k, { key: k, day: l.day, date, items: [] });
+      map.get(k).items.push(l);
+    }
+    return [...map.values()].sort((a, b) => b.date - a.date);
+  }, [logs]);
+  const thisWeek = sessions.filter((x) => weekStart(x.date) === weekStart(new Date()));
+  const doneThisWeek = new Set(thisWeek.map((x) => x.day));
+  const lastFor = (name) => logs.find((l) => l.exercise === name);
+
   const [auth, setAuth] = useState({ email: "", password: "", mode: "login", err: "", busy: false });
 
   const submitAuth = async (e) => {
@@ -151,6 +203,7 @@ export default function Training() {
       }
       update((s) => { s.saved = true; return s; });
       setMsg("Saved ✔");
+      loadLogs();
     } catch {
       setMsg("Could not save. Try logging in again.");
     }
@@ -159,10 +212,30 @@ export default function Training() {
   const reset = () => { if (confirm("Reset today's checks?")) { setSt({ ...emptyState(), k: storeKey }); setRest(null); } };
 
   return (
-    <div style={{ minHeight: "100vh", background: "var(--bg)", color: "var(--text)", padding: "1.25rem 1rem 6rem" }}>
+    <div style={{ ...palette[isDark ? "dark" : "light"], minHeight: "100vh", background: "var(--bg)", color: "var(--text)", padding: "1.25rem 1rem 6rem" }}>
       <div style={{ maxWidth: 640, margin: "0 auto" }}>
-        <h1 style={{ fontSize: "1.6rem", fontWeight: 800 }}>Workout</h1>
-        <p style={{ color: "var(--text-muted)", fontSize: "0.85rem", marginTop: 2 }}>Tue / Thu / Sat · Pull-up bar &amp; floor</p>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12 }}>
+          <div>
+            <h1 style={{ fontSize: "1.6rem", fontWeight: 800, letterSpacing: "-0.02em" }}>Workout</h1>
+            <p style={{ color: "var(--text-muted)", fontSize: "0.85rem", marginTop: 2 }}>Tue / Thu / Sat · Pull-up bar &amp; floor</p>
+          </div>
+          <button onClick={toggle} style={s.iconBtn} title="Toggle dark mode">{isDark ? "☀️" : "🌙"}</button>
+        </div>
+
+        {token && (
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 8, marginTop: 14 }}>
+            <div style={s.stat}><div style={s.statNum}>{thisWeek.length}/3</div><div style={s.statLbl}>this week</div></div>
+            <div style={s.stat}><div style={s.statNum}>{sessions.length}</div><div style={s.statLbl}>workouts saved</div></div>
+            <div style={s.stat}>
+              <div style={{ display: "flex", gap: 6, justifyContent: "center", marginTop: 4 }}>
+                {days.map((d) => (
+                  <span key={d.key} title={d.name} style={{ ...s.dot, ...(doneThisWeek.has(d.key) ? s.dotOn : {}) }}>{d.key[0]}</span>
+                ))}
+              </div>
+              <div style={s.statLbl}>Tue · Thu · Sat</div>
+            </div>
+          </div>
+        )}
 
         <div style={{ display: "flex", gap: 8, margin: "1rem 0" }}>
           {days.map((d, i) => (
@@ -202,7 +275,10 @@ export default function Training() {
                 <strong>{exDone ? "✅ " : ""}{ei + 1}. {name}</strong>
                 <span style={{ color: "var(--text-muted)", fontSize: "0.8rem", whiteSpace: "nowrap" }}>rest {restSec >= 120 ? `${restSec / 60} min` : `${restSec}s`}</span>
               </div>
-              <div style={{ color: "var(--text-muted)", fontSize: "0.82rem", marginTop: 2 }}>Target: {target}{/^\d+$/.test(target) ? ` ${unit}` : ""} per set</div>
+              <div style={{ color: "var(--text-muted)", fontSize: "0.82rem", marginTop: 2 }}>
+                Target: {target}{/^\d+$/.test(target) ? ` ${unit}` : ""} per set
+                {lastFor(name) && <span style={{ color: "var(--text-faint)" }}> · last: {lastFor(name).result}</span>}
+              </div>
               <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
                 {Array.from({ length: SETS }).map((_, si) => {
                   const k = `${ei}-${si}`;
@@ -277,6 +353,26 @@ export default function Training() {
           )}
         </div>
 
+        {sessions.length > 0 && (
+          <>
+            <h2 style={s.h2}>History</h2>
+            {sessions.slice(0, 6).map((x) => (
+              <details key={x.key} style={{ ...s.card, padding: "0.75rem 1rem", marginBottom: 8 }}>
+                <summary style={{ cursor: "pointer" }}>
+                  <strong>{days.find((d) => d.key === x.day)?.name || x.day}</strong>
+                  <span style={{ color: "var(--text-muted)", fontSize: "0.85rem" }}> · {x.date.toLocaleDateString()}</span>
+                </summary>
+                {x.items.map((l) => (
+                  <div key={l.id} style={s.sumRow}>
+                    <span style={{ flex: 1 }}>{l.exercise}</span>
+                    <span style={{ fontWeight: 600 }}>{l.result}</span>
+                  </div>
+                ))}
+              </details>
+            ))}
+          </>
+        )}
+
         <details style={{ ...s.card, padding: "0.9rem 1rem", marginTop: 18 }}>
           <summary style={{ cursor: "pointer", fontWeight: 700 }}>Rules &amp; progression</summary>
           {rules.map(([t, d]) => (
@@ -301,17 +397,23 @@ const s = {
   h2: { fontSize: "0.75rem", fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--text-muted)", margin: "1.6rem 0 0.7rem" },
   card: { background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 14, overflow: "hidden" },
   tab: { flex: 1, padding: "0.6rem", borderRadius: 10, border: "1px solid var(--border)", background: "var(--bg-card)", color: "var(--text)", cursor: "pointer", fontWeight: 600 },
-  tabOn: { background: "var(--accent)", color: "#fff", borderColor: "var(--accent)" },
+  tabOn: { background: "var(--accent)", color: "var(--on-accent)", borderColor: "var(--accent)" },
   barBg: { height: 8, background: "var(--bg-muted)", borderRadius: 8, marginTop: 10, overflow: "hidden" },
   bar: { height: "100%", background: "var(--accent)", borderRadius: 8, transition: "width 0.3s" },
   checkRow: { display: "flex", alignItems: "center", gap: 12, padding: "0.8rem 1rem", borderBottom: "1px solid var(--border)", cursor: "pointer" },
   cb: { width: 20, height: 20, accentColor: "var(--accent)", cursor: "pointer" },
   setBtn: { padding: "0.6rem 0", borderRadius: 10, border: "1.5px solid var(--border-input)", background: "var(--bg-input)", color: "var(--text)", fontWeight: 600, cursor: "pointer" },
-  setOn: { background: "var(--accent)", borderColor: "var(--accent)", color: "#fff" },
+  setOn: { background: "var(--accent)", borderColor: "var(--accent)", color: "var(--on-accent)" },
   input: { width: "100%", minWidth: 0, padding: "0.4rem", textAlign: "center", borderRadius: 8, border: "1px solid var(--border-input)", background: "var(--bg-input)", color: "var(--input-text)", fontSize: "0.9rem" },
   sumRow: { display: "flex", gap: 10, padding: "0.45rem 0", borderBottom: "1px solid var(--border)", fontSize: "0.9rem" },
-  primary: { padding: "0.6rem 1.2rem", borderRadius: 10, border: "none", background: "var(--accent)", color: "#fff", fontWeight: 700, cursor: "pointer" },
+  primary: { padding: "0.6rem 1.2rem", borderRadius: 10, border: "none", background: "var(--accent)", color: "var(--on-accent)", fontWeight: 700, cursor: "pointer" },
   ghost: { padding: "0.6rem 1.2rem", borderRadius: 10, border: "1px solid var(--border)", background: "transparent", color: "var(--text-muted)", cursor: "pointer" },
   restBar: { position: "fixed", left: 16, right: 16, bottom: 16, maxWidth: 608, margin: "0 auto", display: "flex", justifyContent: "space-between", alignItems: "center", padding: "0.8rem 1.1rem", borderRadius: 14, background: "var(--text)", color: "var(--bg)", boxShadow: "0 8px 24px var(--shadow-lg)" },
+  iconBtn: { background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 10, padding: "0.45rem 0.6rem", cursor: "pointer", fontSize: "1rem" },
+  stat: { background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 12, padding: "0.7rem 0.5rem", textAlign: "center" },
+  statNum: { fontSize: "1.3rem", fontWeight: 800, color: "var(--accent)" },
+  statLbl: { fontSize: "0.72rem", color: "var(--text-muted)", marginTop: 2 },
+  dot: { width: 22, height: 22, borderRadius: "50%", display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: "0.7rem", fontWeight: 700, background: "var(--bg-muted)", color: "var(--text-muted)" },
+  dotOn: { background: "var(--accent)", color: "var(--on-accent)" },
   skip: { background: "none", border: "1px solid currentColor", color: "inherit", borderRadius: 8, padding: "0.35rem 0.8rem", cursor: "pointer" },
 };
