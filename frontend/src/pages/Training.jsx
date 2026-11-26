@@ -64,7 +64,30 @@ export default function Training() {
   const [rest, setRest] = useState(null); // { until, label }
   const [now, setNow] = useState(Date.now());
   const [msg, setMsg] = useState("");
-  const token = localStorage.getItem("token");
+  const [token, setToken] = useState(() => localStorage.getItem("token"));
+  const [auth, setAuth] = useState({ email: "", password: "", mode: "login", err: "", busy: false });
+
+  const submitAuth = async (e) => {
+    e.preventDefault();
+    setAuth((a) => ({ ...a, err: "", busy: true }));
+    try {
+      const res = await fetch(`${BACKEND_URL}/api/auth/${auth.mode === "login" ? "login" : "register"}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: auth.email.trim(), password: auth.password }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || !data.token) throw new Error(typeof data.detail === "string" ? data.detail : "Login failed");
+      localStorage.setItem("token", data.token);
+      localStorage.setItem("email", data.email || auth.email.trim());
+      setToken(data.token);
+      setAuth({ email: "", password: "", mode: "login", err: "", busy: false });
+    } catch (err) {
+      setAuth((a) => ({ ...a, err: err.message === "Failed to fetch" ? "Could not connect to server." : err.message, busy: false }));
+    }
+  };
+
+  const logout = () => { localStorage.removeItem("token"); localStorage.removeItem("email"); setToken(null); };
 
   useEffect(() => { setSt(load(storeKey)); setMsg(""); }, [storeKey]);
   useEffect(() => {
@@ -123,6 +146,7 @@ export default function Training() {
           headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
           body: JSON.stringify({ day: day.key, exercise: r.name, result }),
         });
+        if (res.status === 401) { logout(); throw new Error(); }
         if (!res.ok) throw new Error();
       }
       update((s) => { s.saved = true; return s; });
@@ -217,7 +241,7 @@ export default function Training() {
             <div style={{ display: "flex", gap: 8, marginTop: 14, flexWrap: "wrap" }}>
               {token
                 ? <button onClick={save} disabled={st.saved} style={{ ...s.primary, opacity: st.saved ? 0.6 : 1 }}>{st.saved ? "Saved ✔" : "Save workout"}</button>
-                : <a href="/login" style={{ color: "var(--accent)", fontSize: "0.88rem", alignSelf: "center" }}>Log in to save it</a>}
+                : <span style={{ color: "var(--text-muted)", fontSize: "0.88rem", alignSelf: "center" }}>Log in below to save it</span>}
               <button onClick={reset} style={s.ghost}>Reset</button>
             </div>
             {msg && !st.saved && <p style={{ color: "var(--accent)", fontSize: "0.85rem", marginTop: 8 }}>{msg}</p>}
@@ -227,6 +251,31 @@ export default function Training() {
         {!allDone && done > 0 && (
           <button onClick={reset} style={{ ...s.ghost, marginTop: 8 }}>Reset today</button>
         )}
+
+        <div style={{ ...s.card, padding: "0.9rem 1rem", marginTop: 18 }}>
+          {token ? (
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, fontSize: "0.88rem" }}>
+              <span style={{ color: "var(--text-muted)" }}>Logged in as {localStorage.getItem("email") || "you"}</span>
+              <button onClick={logout} style={s.ghost}>Log out</button>
+            </div>
+          ) : (
+            <form onSubmit={submitAuth} style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              <strong>{auth.mode === "login" ? "Log in to save workouts" : "Create an account"}</strong>
+              <input type="email" required placeholder="Email" autoComplete="email" value={auth.email}
+                onChange={(e) => setAuth((a) => ({ ...a, email: e.target.value }))} style={{ ...s.input, textAlign: "left", padding: "0.6rem" }} />
+              <input type="password" required placeholder="Password" autoComplete={auth.mode === "login" ? "current-password" : "new-password"} value={auth.password}
+                onChange={(e) => setAuth((a) => ({ ...a, password: e.target.value }))} style={{ ...s.input, textAlign: "left", padding: "0.6rem" }} />
+              {auth.err && <span style={{ color: "var(--accent)", fontSize: "0.85rem" }}>{auth.err}</span>}
+              <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+                <button type="submit" disabled={auth.busy} style={s.primary}>{auth.busy ? "..." : auth.mode === "login" ? "Log in" : "Sign up"}</button>
+                <button type="button" style={{ ...s.ghost, border: "none" }}
+                  onClick={() => setAuth((a) => ({ ...a, mode: a.mode === "login" ? "register" : "login", err: "" }))}>
+                  {auth.mode === "login" ? "No account? Sign up" : "Have an account? Log in"}
+                </button>
+              </div>
+            </form>
+          )}
+        </div>
 
         <details style={{ ...s.card, padding: "0.9rem 1rem", marginTop: 18 }}>
           <summary style={{ cursor: "pointer", fontWeight: 700 }}>Rules &amp; progression</summary>
