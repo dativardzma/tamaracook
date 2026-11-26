@@ -1,176 +1,268 @@
-import { useCallback, useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useEffect, useMemo, useState } from "react";
 
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "";
 
 const warmup = [
-  ["Wrist Circles & Stretches", "1 min", "Essential joint prep before push-ups and wall handstands."],
-  ["Arm & Shoulder Circles", "1 min", "Controlled forward and backward rotations to warm the rotator cuffs."],
-  ["Scapular Pulls", "2 × 8", "Hang from the bar and pull your shoulder blades down without bending elbows."],
-  ["Bodyweight Squats", "15 reps", "Slow, full-range squats to elevate heart rate and warm up legs."],
+  ["Wrist Circles & Stretches", "1 min"],
+  ["Arm & Shoulder Circles", "1 min"],
+  ["Scapular Pulls", "2 × 8"],
+  ["Bodyweight Squats", "15 reps"],
 ];
 
+// [name, target per set, rest seconds, unit]
 const pushPull = (squat) => [
-  ["Pull-ups (or slow 4-sec negatives)", "3 × Max clean reps", "2 min"],
-  ["Standard Push-ups", "3 × 12", "90 sec"],
-  ["Diamond Push-ups", "3 × 10", "90 sec"],
+  ["Pull-ups (or slow 4-sec negatives)", "Max clean reps", 120, "reps"],
+  ["Standard Push-ups", "12", 90, "reps"],
+  ["Diamond Push-ups", "10", 90, "reps"],
   squat,
-  ["Hollow Body Hold", "3 × 15–20 sec", "60 sec"],
+  ["Hollow Body Hold", "15–20 sec", 60, "sec"],
 ];
 
 const days = [
-  { key: "Tue", name: "Tuesday", focus: "Push, Pull & Core", rows: pushPull(["Bodyweight Squats", "3 × 15", "60 sec"]) },
+  { key: "Tue", name: "Tuesday", focus: "Push, Pull & Core", ex: pushPull(["Bodyweight Squats", "15", 60, "reps"]) },
   {
     key: "Thu", name: "Thursday", focus: "Handstand, Unilateral & Core",
-    rows: [
-      ["Wall Handstand (fresh shoulders)", "3 × 30 sec", "2 min"],
-      ["Chin-ups (palms facing you)", "3 × Max clean reps", "2 min"],
-      ["Archer Push-ups (4 each side)", "3 × 8", "90 sec"],
-      ["Reverse Lunges (6 each leg)", "3 × 12", "60 sec"],
-      ["Plank", "3 × 1 min", "60 sec"],
+    ex: [
+      ["Wall Handstand", "30 sec", 120, "sec"],
+      ["Chin-ups (palms facing you)", "Max clean reps", 120, "reps"],
+      ["Archer Push-ups (4 each side)", "8", 90, "reps"],
+      ["Reverse Lunges (6 each leg)", "12", 60, "reps"],
+      ["Plank", "1 min", 60, "sec"],
     ],
   },
-  { key: "Sat", name: "Saturday", focus: "Push, Pull & Core", rows: pushPull(["Jump Squats (or regular squats)", "3 × 12", "60 sec"]) },
+  { key: "Sat", name: "Saturday", focus: "Push, Pull & Core", ex: pushPull(["Jump Squats (or regular squats)", "12", 60, "reps"]) },
 ];
+
+const SETS = 3;
 
 const rules = [
-  ["Hardest Move First", "Pull-ups and Wall Handstands sit at the top of each day so you perform them while your nervous system, grip, and shoulders are 100% fresh."],
-  ["Form Over Ego", "Chest touches the floor on every push-up with a tight core (no sagging hips). Pull-ups start from a dead hang and finish with your chin clearly over the bar. Never push through sharp wrist, elbow, or shoulder pain."],
-  ["How to Level Up", "Once all sets feel smooth with strict form, add 1–2 reps per set the following week, or slow down the lowering phase (3 seconds down, 1 second up) to build real tendon and muscle strength."],
+  ["Hardest Move First", "Pull-ups and Wall Handstands go first, while grip and shoulders are fresh."],
+  ["Form Over Ego", "Chest to the floor on every push-up, tight core. Pull-ups from a dead hang, chin clearly over the bar. Never push through sharp wrist, elbow or shoulder pain."],
+  ["How to Level Up", "When all sets feel smooth with strict form, add 1–2 reps per set next week, or slow the lowering phase (3 sec down, 1 sec up)."],
 ];
 
+const todayStr = () => new Date().toISOString().slice(0, 10);
+const emptyState = () => ({ warm: {}, sets: {}, reps: {}, start: null, end: null, saved: false });
+
+function load(key) {
+  let v = null;
+  try { v = JSON.parse(localStorage.getItem(key)); } catch { /* ignore */ }
+  return { ...(v || emptyState()), k: key };
+}
+
+const fmtDur = (ms) => {
+  const m = Math.round(ms / 60000);
+  return m < 60 ? `${m} min` : `${Math.floor(m / 60)} h ${m % 60} min`;
+};
+
 export default function Training() {
-  const navigate = useNavigate();
   const todayIdx = { 2: 0, 4: 1, 6: 2 }[new Date().getDay()] ?? 0;
   const [active, setActive] = useState(todayIdx);
   const day = days[active];
+  const storeKey = `wk:${todayStr()}:${day.key}`;
+  const [st, setSt] = useState(() => load(storeKey));
+  const [rest, setRest] = useState(null); // { until, label }
+  const [now, setNow] = useState(Date.now());
+  const [msg, setMsg] = useState("");
   const token = localStorage.getItem("token");
-  const [logs, setLogs] = useState([]);
-  const [drafts, setDrafts] = useState({});
-  const [err, setErr] = useState("");
 
-  const loadLogs = useCallback(() => {
-    if (!token) return;
-    fetch(`${BACKEND_URL}/api/workout-logs`, { headers: { Authorization: `Bearer ${token}` } })
-      .then((r) => (r.ok ? r.json() : Promise.reject()))
-      .then(setLogs)
-      .catch(() => setErr("Could not load your log. Try logging in again."));
-  }, [token]);
-  useEffect(loadLogs, [loadLogs]);
+  useEffect(() => { setSt(load(storeKey)); setMsg(""); }, [storeKey]);
+  useEffect(() => {
+    if (st.k !== storeKey) return; // state still belongs to the previous tab
+    try { localStorage.setItem(storeKey, JSON.stringify(st)); } catch { /* ignore */ }
+  }, [st, storeKey]);
 
-  const lastFor = (ex) => logs.find((l) => l.exercise === ex);
-
-  const save = async (ex) => {
-    const result = (drafts[ex] || "").trim();
-    if (!result) return;
-    setErr("");
-    const r = await fetch(`${BACKEND_URL}/api/workout-logs`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-      body: JSON.stringify({ day: day.key, exercise: ex, result }),
-    });
-    if (!r.ok) return setErr("Could not save. Try logging in again.");
-    setDrafts((d) => ({ ...d, [ex]: "" }));
-    loadLogs();
-  };
-
-  // keep this page out of search engines
   useEffect(() => {
     const m = document.createElement("meta");
-    m.name = "robots";
-    m.content = "noindex,nofollow";
+    m.name = "robots"; m.content = "noindex,nofollow";
     document.head.appendChild(m);
     return () => m.remove();
   }, []);
 
+  useEffect(() => {
+    if (!rest) return;
+    const t = setInterval(() => setNow(Date.now()), 250);
+    return () => clearInterval(t);
+  }, [rest]);
+  const restLeft = rest ? Math.max(0, Math.ceil((rest.until - now) / 1000)) : 0;
+  useEffect(() => { if (rest && restLeft === 0) setRest(null); }, [rest, restLeft]);
+
+  const total = warmup.length + day.ex.length * SETS;
+  const done = Object.values(st.warm).filter(Boolean).length + Object.values(st.sets).filter(Boolean).length;
+  const allDone = done === total;
+
+  const update = (fn) => setSt((s) => {
+    const n = fn({ ...s, warm: { ...s.warm }, sets: { ...s.sets }, reps: { ...s.reps } });
+    n.start = n.start || Date.now();
+    const d = Object.values(n.warm).filter(Boolean).length + Object.values(n.sets).filter(Boolean).length;
+    n.end = d === total ? (s.end || Date.now()) : null;
+    return n;
+  });
+
+  const toggleSet = (ei, si) => {
+    const k = `${ei}-${si}`;
+    const turningOn = !st.sets[k];
+    update((s) => { s.sets[k] = turningOn; return s; });
+    const isLast = ei === day.ex.length - 1 && si === SETS - 1;
+    if (turningOn && !isLast) setRest({ until: Date.now() + day.ex[ei][2] * 1000, label: day.ex[ei][0] });
+  };
+
+  const summary = useMemo(() => day.ex.map(([name, , , unit], ei) => {
+    const vals = Array.from({ length: SETS }, (_, si) => st.reps[`${ei}-${si}`]).filter((v) => v !== undefined && v !== "");
+    const sum = vals.reduce((a, v) => a + (Number(v) || 0), 0);
+    return { name, unit, vals, sum };
+  }), [day, st.reps]);
+
+  const save = async () => {
+    setMsg("");
+    try {
+      for (const r of summary) {
+        const result = r.vals.length ? `${r.vals.join(" / ")} ${r.unit}` : `${SETS} sets done`;
+        const res = await fetch(`${BACKEND_URL}/api/workout-logs`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+          body: JSON.stringify({ day: day.key, exercise: r.name, result }),
+        });
+        if (!res.ok) throw new Error();
+      }
+      update((s) => { s.saved = true; return s; });
+      setMsg("Saved ✔");
+    } catch {
+      setMsg("Could not save. Try logging in again.");
+    }
+  };
+
+  const reset = () => { if (confirm("Reset today's checks?")) { setSt({ ...emptyState(), k: storeKey }); setRest(null); } };
+
   return (
-    <div style={{ minHeight: "100vh", background: "var(--bg)", color: "var(--text)", padding: "1.5rem 1rem 4rem" }}>
-      <div style={{ maxWidth: 720, margin: "0 auto" }}>
-        <button onClick={() => navigate("/")} style={s.back}>← Back</button>
-        <h1 style={{ fontSize: "1.8rem", fontWeight: 800, marginTop: "1rem" }}>Calisthenics Training Scheme</h1>
-        <p style={{ color: "var(--text-muted)", marginTop: 4, fontSize: "0.9rem" }}>
-          Balanced 3-day bodyweight strength &amp; skill · Tue / Thu / Sat · Pull-up bar &amp; floor
-        </p>
+    <div style={{ minHeight: "100vh", background: "var(--bg)", color: "var(--text)", padding: "1.25rem 1rem 6rem" }}>
+      <div style={{ maxWidth: 640, margin: "0 auto" }}>
+        <h1 style={{ fontSize: "1.6rem", fontWeight: 800 }}>Workout</h1>
+        <p style={{ color: "var(--text-muted)", fontSize: "0.85rem", marginTop: 2 }}>Tue / Thu / Sat · Pull-up bar &amp; floor</p>
 
-        <h2 style={s.h2}>Warm-up · 5 minutes every session</h2>
-        <div style={s.card}>
-          {warmup.map(([n, t, d]) => (
-            <div key={n} style={s.warmRow}>
-              <div style={{ display: "flex", justifyContent: "space-between", gap: 12 }}>
-                <strong>{n}</strong>
-                <span style={{ color: "var(--accent)", fontWeight: 700, whiteSpace: "nowrap" }}>{t}</span>
-              </div>
-              <p style={{ color: "var(--text-muted)", fontSize: "0.85rem", marginTop: 2 }}>{d}</p>
-            </div>
-          ))}
-        </div>
-
-        <h2 style={s.h2}>Weekly schedule</h2>
-        <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
+        <div style={{ display: "flex", gap: 8, margin: "1rem 0" }}>
           {days.map((d, i) => (
-            <button key={d.key} onClick={() => setActive(i)}
-              style={{ ...s.tab, ...(i === active ? s.tabOn : {}) }}>{d.key}</button>
+            <button key={d.key} onClick={() => setActive(i)} style={{ ...s.tab, ...(i === active ? s.tabOn : {}) }}>{d.key}</button>
           ))}
         </div>
-        <div style={s.card}>
-          <div style={{ padding: "1rem 1.1rem", borderBottom: "1px solid var(--border)" }}>
-            <strong style={{ fontSize: "1.1rem" }}>{day.name}</strong>
-            <div style={{ color: "var(--accent)", fontSize: "0.85rem" }}>{day.focus}</div>
-          </div>
-          {day.rows.map(([ex, sets, rest], i) => (
-            <div key={ex} style={s.exRow}>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontWeight: 600 }}>{i + 1}. {ex}</div>
-                <div style={{ color: "var(--text-muted)", fontSize: "0.82rem", marginTop: 2 }}>Rest {rest}</div>
-                {token && (
-                  <div style={{ marginTop: 8 }}>
-                    <div style={{ display: "flex", gap: 6 }}>
-                      <input value={drafts[ex] || ""} placeholder="e.g. 8 / 7 / 6"
-                        onChange={(e) => setDrafts((d) => ({ ...d, [ex]: e.target.value }))}
-                        onKeyDown={(e) => e.key === "Enter" && save(ex)}
-                        style={s.input} />
-                      <button onClick={() => save(ex)} style={s.save}>Log</button>
-                    </div>
-                    {lastFor(ex) && (
-                      <div style={{ color: "var(--text-faint)", fontSize: "0.78rem", marginTop: 4 }}>
-                        Last: {lastFor(ex).result} · {new Date(lastFor(ex).created_at).toLocaleDateString()}
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-              <div style={{ fontWeight: 700, textAlign: "right" }}>{sets}</div>
+
+        <div style={{ ...s.card, padding: "0.9rem 1rem" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
+            <div>
+              <strong>{day.name}</strong>
+              <div style={{ color: "var(--accent)", fontSize: "0.82rem" }}>{day.focus}</div>
             </div>
+            <span style={{ fontWeight: 700 }}>{done}/{total}</span>
+          </div>
+          <div style={s.barBg}><div style={{ ...s.bar, width: `${(done / total) * 100}%` }} /></div>
+        </div>
+
+        <h2 style={s.h2}>Warm-up · 5 min</h2>
+        <div style={s.card}>
+          {warmup.map(([n, t], i) => (
+            <label key={n} style={s.checkRow}>
+              <input type="checkbox" checked={!!st.warm[i]} style={s.cb}
+                onChange={() => update((x) => { x.warm[i] = !x.warm[i]; return x; })} />
+              <span style={{ flex: 1, textDecoration: st.warm[i] ? "line-through" : "none", opacity: st.warm[i] ? 0.55 : 1 }}>{n}</span>
+              <span style={{ color: "var(--text-muted)", fontSize: "0.85rem" }}>{t}</span>
+            </label>
           ))}
         </div>
 
-        {!token && (
-          <p style={{ color: "var(--text-muted)", fontSize: "0.85rem", marginTop: 10 }}>
-            <a href="/login" style={{ color: "var(--accent)" }}>Log in</a> to track your results.
-          </p>
-        )}
-        {err && <p style={{ color: "var(--accent)", fontSize: "0.85rem", marginTop: 10 }}>{err}</p>}
+        <h2 style={s.h2}>Exercises · {SETS} sets each</h2>
+        {day.ex.map(([name, target, restSec, unit], ei) => {
+          const exDone = Array.from({ length: SETS }).every((_, si) => st.sets[`${ei}-${si}`]);
+          return (
+            <div key={name} style={{ ...s.card, padding: "0.9rem 1rem", marginBottom: 10, borderColor: exDone ? "var(--accent)" : "var(--border)" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", gap: 10 }}>
+                <strong>{exDone ? "✅ " : ""}{ei + 1}. {name}</strong>
+                <span style={{ color: "var(--text-muted)", fontSize: "0.8rem", whiteSpace: "nowrap" }}>rest {restSec >= 120 ? `${restSec / 60} min` : `${restSec}s`}</span>
+              </div>
+              <div style={{ color: "var(--text-muted)", fontSize: "0.82rem", marginTop: 2 }}>Target: {target}{/^\d+$/.test(target) ? ` ${unit}` : ""} per set</div>
+              <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
+                {Array.from({ length: SETS }).map((_, si) => {
+                  const k = `${ei}-${si}`;
+                  const on = !!st.sets[k];
+                  return (
+                    <div key={si} style={{ flex: 1, display: "flex", flexDirection: "column", gap: 6 }}>
+                      <button onClick={() => toggleSet(ei, si)} style={{ ...s.setBtn, ...(on ? s.setOn : {}) }}>
+                        {on ? "✓" : ""} Set {si + 1}
+                      </button>
+                      <input inputMode="numeric" placeholder={unit} value={st.reps[k] ?? ""} style={s.input}
+                        onChange={(e) => { const v = e.target.value.replace(/[^\d]/g, ""); update((x) => { x.reps[k] = v; return x; }); }} />
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          );
+        })}
 
-        <h2 style={s.h2}>Training rules &amp; progression</h2>
-        {rules.map(([t, d], i) => (
-          <div key={t} style={{ ...s.card, padding: "1rem 1.1rem", marginBottom: 10 }}>
-            <strong>{i + 1}. {t}</strong>
-            <p style={{ color: "var(--text-muted)", fontSize: "0.9rem", marginTop: 4, lineHeight: 1.6 }}>{d}</p>
+        {allDone && (
+          <div style={{ ...s.card, padding: "1.2rem 1rem", marginTop: 18, borderColor: "var(--accent)", background: "var(--accent-light)" }}>
+            <div style={{ fontSize: "1.3rem", fontWeight: 800 }}>💪 Workout complete!</div>
+            <div style={{ color: "var(--text-muted)", fontSize: "0.88rem", marginTop: 4 }}>
+              {day.name} · {todayStr()}{st.start && st.end ? ` · ${fmtDur(st.end - st.start)}` : ""} · {day.ex.length * SETS} sets
+            </div>
+            <div style={{ marginTop: 12 }}>
+              {summary.map((r) => (
+                <div key={r.name} style={s.sumRow}>
+                  <span style={{ flex: 1 }}>{r.name}</span>
+                  <span style={{ fontWeight: 700, textAlign: "right" }}>
+                    {r.vals.length ? `${r.vals.join(" / ")}  (${r.sum} ${r.unit})` : "✓"}
+                  </span>
+                </div>
+              ))}
+            </div>
+            <div style={{ display: "flex", gap: 8, marginTop: 14, flexWrap: "wrap" }}>
+              {token
+                ? <button onClick={save} disabled={st.saved} style={{ ...s.primary, opacity: st.saved ? 0.6 : 1 }}>{st.saved ? "Saved ✔" : "Save workout"}</button>
+                : <a href="/login" style={{ color: "var(--accent)", fontSize: "0.88rem", alignSelf: "center" }}>Log in to save it</a>}
+              <button onClick={reset} style={s.ghost}>Reset</button>
+            </div>
+            {msg && !st.saved && <p style={{ color: "var(--accent)", fontSize: "0.85rem", marginTop: 8 }}>{msg}</p>}
           </div>
-        ))}
+        )}
+
+        {!allDone && done > 0 && (
+          <button onClick={reset} style={{ ...s.ghost, marginTop: 8 }}>Reset today</button>
+        )}
+
+        <details style={{ ...s.card, padding: "0.9rem 1rem", marginTop: 18 }}>
+          <summary style={{ cursor: "pointer", fontWeight: 700 }}>Rules &amp; progression</summary>
+          {rules.map(([t, d]) => (
+            <p key={t} style={{ fontSize: "0.88rem", color: "var(--text-muted)", marginTop: 10, lineHeight: 1.55 }}>
+              <strong style={{ color: "var(--text)" }}>{t}:</strong> {d}
+            </p>
+          ))}
+        </details>
       </div>
+
+      {rest && (
+        <div style={s.restBar}>
+          <span>Rest · <strong style={{ fontSize: "1.2rem" }}>{Math.floor(restLeft / 60)}:{String(restLeft % 60).padStart(2, "0")}</strong></span>
+          <button onClick={() => setRest(null)} style={s.skip}>Skip</button>
+        </div>
+      )}
     </div>
   );
 }
 
 const s = {
-  back: { background: "none", border: "none", color: "var(--text-muted)", cursor: "pointer", fontSize: "0.9rem" },
-  h2: { fontSize: "0.78rem", fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--text-muted)", margin: "2rem 0 0.8rem" },
+  h2: { fontSize: "0.75rem", fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--text-muted)", margin: "1.6rem 0 0.7rem" },
   card: { background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 14, overflow: "hidden" },
-  warmRow: { padding: "0.85rem 1.1rem", borderBottom: "1px solid var(--border)" },
-  exRow: { display: "flex", gap: 12, alignItems: "center", padding: "0.85rem 1.1rem", borderBottom: "1px solid var(--border)" },
-  input: { flex: 1, minWidth: 0, padding: "0.45rem 0.6rem", borderRadius: 8, border: "1px solid var(--border-input)", background: "var(--bg-input)", color: "var(--input-text)", fontSize: "0.9rem" },
-  save: { padding: "0.45rem 0.9rem", borderRadius: 8, border: "none", background: "var(--accent)", color: "#fff", fontWeight: 600, cursor: "pointer" },
   tab: { flex: 1, padding: "0.6rem", borderRadius: 10, border: "1px solid var(--border)", background: "var(--bg-card)", color: "var(--text)", cursor: "pointer", fontWeight: 600 },
   tabOn: { background: "var(--accent)", color: "#fff", borderColor: "var(--accent)" },
+  barBg: { height: 8, background: "var(--bg-muted)", borderRadius: 8, marginTop: 10, overflow: "hidden" },
+  bar: { height: "100%", background: "var(--accent)", borderRadius: 8, transition: "width 0.3s" },
+  checkRow: { display: "flex", alignItems: "center", gap: 12, padding: "0.8rem 1rem", borderBottom: "1px solid var(--border)", cursor: "pointer" },
+  cb: { width: 20, height: 20, accentColor: "var(--accent)", cursor: "pointer" },
+  setBtn: { padding: "0.6rem 0", borderRadius: 10, border: "1.5px solid var(--border-input)", background: "var(--bg-input)", color: "var(--text)", fontWeight: 600, cursor: "pointer" },
+  setOn: { background: "var(--accent)", borderColor: "var(--accent)", color: "#fff" },
+  input: { width: "100%", minWidth: 0, padding: "0.4rem", textAlign: "center", borderRadius: 8, border: "1px solid var(--border-input)", background: "var(--bg-input)", color: "var(--input-text)", fontSize: "0.9rem" },
+  sumRow: { display: "flex", gap: 10, padding: "0.45rem 0", borderBottom: "1px solid var(--border)", fontSize: "0.9rem" },
+  primary: { padding: "0.6rem 1.2rem", borderRadius: 10, border: "none", background: "var(--accent)", color: "#fff", fontWeight: 700, cursor: "pointer" },
+  ghost: { padding: "0.6rem 1.2rem", borderRadius: 10, border: "1px solid var(--border)", background: "transparent", color: "var(--text-muted)", cursor: "pointer" },
+  restBar: { position: "fixed", left: 16, right: 16, bottom: 16, maxWidth: 608, margin: "0 auto", display: "flex", justifyContent: "space-between", alignItems: "center", padding: "0.8rem 1.1rem", borderRadius: 14, background: "var(--text)", color: "var(--bg)", boxShadow: "0 8px 24px var(--shadow-lg)" },
+  skip: { background: "none", border: "1px solid currentColor", color: "inherit", borderRadius: 8, padding: "0.35rem 0.8rem", cursor: "pointer" },
 };
